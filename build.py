@@ -369,7 +369,7 @@ def main():
         import PyInstaller
     except ImportError:
         print("❌ PyInstaller not installed")
-        print("   Install with: pip install -r requirements-dev.txt")
+        print("   Install with: pip install -r requirements.txt")
         sys.exit(1)
     
     # Build

@@ -39,8 +39,7 @@ Welcome! This document helps you navigate all the documentation for the REST API
 
 | File | Purpose |
 |------|---------|
-| [requirements.txt](requirements.txt) | Production dependencies |
-| [requirements-dev.txt](requirements-dev.txt) | Development & build dependencies |
+| [requirements.txt](requirements.txt) | All dependencies |
 | [.env.example](.env.example) | Environment variables template |
 | [config.py](config.py) | Application configuration |
 
@@ -132,8 +131,7 @@ repo/
 │
 ├── ⚙️ Configuration
 │   ├── config.py             # App configuration
-│   ├── requirements.txt      # Production dependencies
-│   ├── requirements-dev.txt  # Dev/build dependencies
+│   ├── requirements.txt      # All dependencies
 │   ├── .env.example          # Environment template
 │   └── .gitignore           # Git ignore rules
 │
@@ -178,7 +176,7 @@ python example_usage.py
 
 ```bash
 # Install build tools (in venv)
-pip install -r requirements-dev.txt
+pip install -r requirements.txt
 
 # Build all databases
 python build.py all

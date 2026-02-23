@@ -98,7 +98,7 @@ def verify_ci_setup():
     if all(all_checks):
         print("\n✅ CI/CD setup is complete!")
         print("\nNext steps:")
-        print("  1. Install dependencies: pip install -r requirements-dev.txt")
+        print("  1. Install dependencies: pip install -r requirements.txt")
         print("  2. Build executable: python build.py all")
         print("  3. Run tests: python ci/run_tests.py")
         return 0

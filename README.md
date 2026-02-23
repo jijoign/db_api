@@ -54,7 +54,7 @@ Package the API as standalone executables for distribution to systems without Py
 
 ```bash
 # Install build tools
-pip install -r requirements-dev.txt
+pip install -r requirements.txt
 
 # Build executable (all databases)
 python build.py all

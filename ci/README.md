@@ -16,7 +16,7 @@ python3 -m venv venv
 source venv/bin/activate  # Linux/macOS
 
 # Install dependencies
-pip install -r requirements-dev.txt
+pip install -r requirements.txt
 ```
 
 **Note:** If no virtual environment is detected, scripts will fall back to system Python.
@@ -295,7 +295,7 @@ jobs:
           python-version: '3.11'
       - name: Install dependencies
         run: |
-          pip install -r requirements-dev.txt
+          pip install -r requirements.txt
       - name: Run tests
         run: |
           python ci/run_tests.py
@@ -322,13 +322,13 @@ stages:
 test:
   stage: test
   script:
-    - pip install -r requirements-dev.txt
+    - pip install -r requirements.txt
     - python ci/run_tests.py
   
 build:
   stage: build
   script:
-    - pip install -r requirements-dev.txt
+    - pip install -r requirements.txt
     - python ci/scripts/build_executable.py --type all --package
   artifacts:
     paths:
@@ -352,7 +352,7 @@ steps:
       versionSpec: '3.11'
   
   - script: |
-      pip install -r requirements-dev.txt
+      pip install -r requirements.txt
     displayName: 'Install dependencies'
   
   - script: |
@@ -436,7 +436,7 @@ chmod +x dist/rest-api-library
 
 ```bash
 # Install all test dependencies
-pip install -r requirements-dev.txt
+pip install -r requirements.txt
 
 # Specific dependencies
 pip install pytest pytest-cov requests psutil

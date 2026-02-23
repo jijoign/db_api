@@ -14,13 +14,13 @@ python3 -m venv venv
 source venv/bin/activate  # Linux/macOS
 
 # Install dependencies
-pip install -r requirements-dev.txt
+pip install -r requirements.txt
 ```
 
 **Without virtual environment:**
 
 ```bash
-pip install -r requirements-dev.txt
+pip install -r requirements.txt
 ```
 
 This installs PyInstaller and other build tools.
@@ -376,7 +376,7 @@ jobs:
     
     - name: Install dependencies
       run: |
-        pip install -r requirements-dev.txt
+        pip install -r requirements.txt
     
     - name: Build executable
       run: python build.py all
