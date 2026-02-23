@@ -1,10 +1,12 @@
 """Main FastAPI application."""
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from contextlib import asynccontextmanager
-from config import settings
+
 from app.database import init_db
-from app.routes import user_router, item_router
+from app.routes import item_router, user_router
+from config import settings
 
 
 @asynccontextmanager
@@ -23,7 +25,7 @@ app = FastAPI(
     title=settings.api_title,
     version=settings.api_version,
     description=settings.api_description,
-    lifespan=lifespan
+    lifespan=lifespan,
 )
 
 # Configure CORS
@@ -47,7 +49,7 @@ async def root():
         "message": "Welcome to the REST API Library",
         "version": settings.api_version,
         "docs": "/docs",
-        "redoc": "/redoc"
+        "redoc": "/redoc",
     }
 
 
@@ -59,9 +61,5 @@ async def health_check():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(
-        "app.main:app",
-        host=settings.host,
-        port=settings.port,
-        reload=settings.debug
-    )
+
+    uvicorn.run("app.main:app", host=settings.host, port=settings.port, reload=settings.debug)

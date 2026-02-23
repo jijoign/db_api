@@ -7,7 +7,6 @@ from sqlalchemy.orm import Session
 from app import models, schemas
 from app.database import Base
 
-
 # Generic CRUD type
 ModelType = TypeVar("ModelType", bound=Base)
 CreateSchemaType = TypeVar("CreateSchemaType", bound=BaseModel)
@@ -24,9 +23,7 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         """Get a single record by ID."""
         return db.query(self.model).filter(self.model.id == id).first()
 
-    def get_multi(
-        self, db: Session, skip: int = 0, limit: int = 100
-    ) -> List[ModelType]:
+    def get_multi(self, db: Session, skip: int = 0, limit: int = 100) -> List[ModelType]:
         """Get multiple records with pagination."""
         return db.query(self.model).offset(skip).limit(limit).all()
 
@@ -39,9 +36,7 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         db.refresh(db_obj)
         return db_obj
 
-    def update(
-        self, db: Session, db_obj: ModelType, obj_in: UpdateSchemaType
-    ) -> ModelType:
+    def update(self, db: Session, db_obj: ModelType, obj_in: UpdateSchemaType) -> ModelType:
         """Update an existing record."""
         obj_data = obj_in.model_dump(exclude_unset=True)
         for field, value in obj_data.items():
@@ -67,19 +62,11 @@ class CRUDUser(CRUDBase[models.User, schemas.UserCreate, schemas.UserUpdate]):
         """Get user by email."""
         return db.query(models.User).filter(models.User.email == email).first()
 
-    def get_by_username(
-        self, db: Session, username: str
-    ) -> Optional[models.User]:
+    def get_by_username(self, db: Session, username: str) -> Optional[models.User]:
         """Get user by username."""
-        return (
-            db.query(models.User)
-            .filter(models.User.username == username)
-            .first()
-        )
+        return db.query(models.User).filter(models.User.username == username).first()
 
-    def get_active_users(
-        self, db: Session, skip: int = 0, limit: int = 100
-    ) -> List[models.User]:
+    def get_active_users(self, db: Session, skip: int = 0, limit: int = 100) -> List[models.User]:
         """Get all active users."""
         return (
             db.query(models.User)
