@@ -1,11 +1,10 @@
 """Integration tests for the installer package."""
-import sys
 import os
-import tempfile
 import shutil
+import tempfile
+import unittest
 import zipfile
 from pathlib import Path
-import unittest
 
 
 class InstallerTests(unittest.TestCase):
@@ -36,13 +35,12 @@ class InstallerTests(unittest.TestCase):
     
     def test_02_executable_present(self):
         """Test that at least one executable is present."""
-        if sys.platform == 'win32':
-            executables = list(self.dist_dir.glob("*.exe"))
-        else:
-            executables = [
-                f for f in self.dist_dir.iterdir()
-                if f.is_file() and 'rest-api-library' in f.name
-            ]
+        # Check for Unix executables (no extension) and Windows executables (.exe)
+        executables = [
+            f for f in self.dist_dir.iterdir()
+            if f.is_file() and 'rest-api-library' in f.name
+            and (not f.suffix or f.suffix == '.exe')
+        ]
         
         self.assertGreater(
             len(executables), 0,
@@ -154,13 +152,12 @@ class InstallerTests(unittest.TestCase):
     
     def test_07_executable_filenames(self):
         """Test that executables have correct naming."""
-        if sys.platform == 'win32':
-            executables = list(self.dist_dir.glob("*.exe"))
-        else:
-            executables = [
-                f for f in self.dist_dir.iterdir()
-                if f.is_file() and 'rest-api-library' in f.name
-            ]
+        # Check for both Unix and Windows executables
+        executables = [
+            f for f in self.dist_dir.iterdir()
+            if f.is_file() and 'rest-api-library' in f.name
+            and (not f.suffix or f.suffix == '.exe')
+        ]
         
         for exe in executables:
             # Should contain 'rest-api-library' in name

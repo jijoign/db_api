@@ -83,6 +83,11 @@ This creates complete distribution packages (`.zip` files) with:
 - Documentation
 - Startup script
 
+**Platform Note:** Executables are platform-specific. For production:
+- Build on Linux for Linux deployments
+- Build on macOS for macOS deployments
+- Building on Windows creates `.exe` files (see deployment notes)
+
 ### Method 3: Custom Build with Spec File
 
 For advanced customization, edit the spec file:

@@ -2,8 +2,12 @@
 
 This script creates optimized executables for each database type,
 including only the necessary database drivers.
+
+Note: This build system creates executables for Unix/Linux/macOS.
+Builds should be performed on the target platform for best results.
 """
 import os
+import platform
 import sys
 import subprocess
 import shutil
@@ -208,11 +212,15 @@ echo
 ./{exe_name}
 """
     sh_file = package_dir / "start.sh"
-    with open(sh_file, "w") as f:
+    with open(sh_file, "w", newline='\n') as f:
         f.write(sh_content)
     
-    # Make executable on Unix systems
-    os.chmod(sh_file, 0o755)
+    # Make executable on Unix systems (skip on Windows)
+    try:
+        os.chmod(sh_file, 0o755)
+    except (OSError, NotImplementedError):
+        # Windows doesn't support Unix permissions
+        pass
     
     print(f"  ✓ Created start.sh")
 
@@ -220,6 +228,11 @@ echo
 def create_distribution_package(db_type):
     """Create a distribution package for a specific database build."""
     print(f"\n📦 Creating distribution package for {db_type}...")
+    
+    # Warn if on Windows
+    if platform.system() == 'Windows':
+        print("  ⚠️  Warning: Building on Windows. Executables will only run on the build platform.")
+        print("     For Unix executables, build on Linux or macOS.")
     
     exe_name = f"rest-api-library-{db_type}"
     package_name = f"{exe_name}-1.0.0"
@@ -230,11 +243,16 @@ def create_distribution_package(db_type):
     
     package_dir.mkdir(parents=True, exist_ok=True)
     
-    # Copy executable
+    # Copy executable (handle both .exe and no extension)
     exe_file = Path("dist") / exe_name
+    exe_file_win = Path("dist") / f"{exe_name}.exe"
+    
     if exe_file.exists():
         shutil.copy2(exe_file, package_dir)
         print(f"  ✓ Copied {exe_name}")
+    elif exe_file_win.exists():
+        shutil.copy2(exe_file_win, package_dir)
+        print(f"  ✓ Copied {exe_name}.exe")
     else:
         print(f"  ⚠️  Executable not found: {exe_file}")
         return None

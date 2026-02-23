@@ -70,6 +70,8 @@ python build.py sqlite --package  # SQLite package
 python build.py all --package     # All packages
 ```
 
+**Note:** For production deployments, build on the target platform (Linux/macOS) for best compatibility.
+
 ### Using Build Scripts
 
 **Linux/Mac:**
@@ -113,7 +115,7 @@ chmod +x build.sh
 ```bash
 curl -X POST "http://localhost:8000/api/users/" \
   -H "Content-Type: application/json" \
-  -d '{instructions:** See [BUILD.md](BUILD
+  -d '{
     "username": "johndoe",
     "email": "john@example.com",
     "full_name": "John Doe",
