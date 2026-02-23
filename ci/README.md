@@ -87,7 +87,7 @@ ci/
 # Trigger build with parameters
 curl -X POST "http://jenkins-server/job/rest-api-library/buildWithParameters" \
   --user username:token \
-  --data "BRANCH_NAME=main&BUILD_TYPE=all&RUN_TESTS=true&CREATE_PACKAGE=false"
+  --data "BRANCH_NAME=main&BUILD_TYPE=sqlite&RUN_TESTS=true&CREATE_PACKAGE=false"
 ```
 
 ## Test Suites

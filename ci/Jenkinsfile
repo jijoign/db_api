@@ -3,7 +3,7 @@ pipeline {
     
     parameters {
         string(name: 'BRANCH_NAME', defaultValue: 'main', description: 'Branch to build from')
-        choice(name: 'BUILD_TYPE', choices: ['all', 'sqlite', 'postgresql', 'mysql'], description: 'Type of build to create')
+        choice(name: 'BUILD_TYPE', choices: ['mysql', 'sqlite', 'postgresql', 'all'], description: 'Type of build to create')
         booleanParam(name: 'RUN_TESTS', defaultValue: true, description: 'Run test suite')
         booleanParam(name: 'CREATE_PACKAGE', defaultValue: false, description: 'Create distribution package')
     }

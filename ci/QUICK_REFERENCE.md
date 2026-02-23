@@ -34,7 +34,7 @@ python ci/run_tests.py --skip-slow
 # Trigger build with parameters
 curl -X POST "http://jenkins/job/rest-api-library/buildWithParameters" \
   --user username:token \
-  --data "BRANCH_NAME=main&BUILD_TYPE=all&RUN_TESTS=true"
+  --data "BRANCH_NAME=main&BUILD_TYPE=sqlite&RUN_TESTS=true"
 ```
 
 **Parameters:**
