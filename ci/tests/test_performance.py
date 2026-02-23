@@ -17,12 +17,12 @@ class PerformanceTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         """Set up test environment once."""
-        cls.dist_dir = Path("dist")
+        cls.dist_dir = Path("dist/rest-api-library-sqlite-1.0.0")
         cls.executable = cls._find_executable()
         cls.temp_dir = tempfile.mkdtemp(prefix="perf_test_")
         cls.process = None
-        cls.base_url = "http://localhost:8200"
-        cls.test_port = 8200
+        cls.base_url = "http://localhost:8000"
+        cls.test_port = 8000
         
         # Start executable once for all tests
         cls._start_executable()
@@ -60,8 +60,10 @@ class PerformanceTests(unittest.TestCase):
     @classmethod
     def _start_executable(cls, timeout=15):
         """Start the executable."""
+        # Use file-based database instead of :memory: to avoid connection pooling issues
+        db_path = Path(cls.temp_dir) / "test.db"
         env_content = f"""
-DATABASE_URL=sqlite:///:memory:
+DATABASE_URL=sqlite:///{db_path}
 HOST=127.0.0.1
 PORT={cls.test_port}
 DEBUG=False
@@ -81,12 +83,20 @@ DEBUG=False
             [f"./{temp_exe.name}"],
             cwd=cls.temp_dir,
             stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            stderr=subprocess.STDOUT,  # Capture stderr to stdout for debugging
             text=True
         )
         
         start_time = time.time()
         while time.time() - start_time < timeout:
+            # Check if process crashed during startup
+            if cls.process.poll() is not None:
+                stdout, _ = cls.process.communicate()
+                print(f"\n❌ Executable crashed during startup!")
+                print(f"   Exit code: {cls.process.returncode}")
+                print(f"   Output:\n{stdout}")
+                return False
+                
             try:
                 response = requests.get(f"{cls.base_url}/health", timeout=1)
                 if response.status_code == 200:
@@ -94,11 +104,29 @@ DEBUG=False
             except requests.exceptions.RequestException:
                 time.sleep(0.5)
         
+        # Timeout - print current output
+        if cls.process.poll() is None:
+            print(f"\n⚠️  Server didn't start within timeout, checking output...")
+            # Give it a moment to produce output
+            time.sleep(1)
         return False
     
     def test_01_response_time_health(self):
         """Test health endpoint response time."""
         print("\n  Testing health endpoint response time...")
+        
+        # First verify database is accessible and check for errors
+        try:
+            response = requests.get(f"{self.base_url}/api/users/")
+            print(f"    Debug: GET /api/users/ returned {response.status_code}")
+            if response.status_code == 500:
+                print(f"    Error response: {response.text}")
+                # Try to get process output
+                if self.__class__.process and self.__class__.process.poll() is None:
+                    # Process still running, can't get full output yet
+                    print(f"    Process is still running (PID: {self.__class__.process.pid})")
+        except Exception as e:
+            print(f"    Error checking users endpoint: {e}")
         
         times = []
         for _ in range(10):
@@ -148,6 +176,13 @@ DEBUG=False
         """Test creating multiple users."""
         print("\n  Testing bulk user creation...")
         
+        # First, check if the process is still running
+        if self.__class__.process.poll() is not None:
+            print("    ❌ Process has died!")
+            stdout, _ = self.__class__.process.communicate()
+            print(f"       Output: {stdout[-500:]}")  # Last 500 chars
+            self.fail("Executable process is not running")
+        
         num_users = 20
         start_time = time.time()
         
@@ -163,6 +198,16 @@ DEBUG=False
                 json=user_data,
                 timeout=5
             )
+            if response.status_code != 201:
+                print(f"    ❌ Failed to create user {i}: {response.status_code}")
+                print(f"       Response: {response.text}")
+                
+                # Check if process crashed
+                if self.__class__.process.poll() is not None:
+                    stdout, _ = self.__class__.process.communicate()
+                    print(f"    ❌ Process crashed!")
+                    print(f"       Last output:\n{stdout[-1000:]}")
+                    
             self.assertEqual(response.status_code, 201)
         
         elapsed = time.time() - start_time
@@ -181,7 +226,9 @@ DEBUG=False
             timeout=5
         )
         elapsed = time.time() - start_time
-        
+        if response.status_code != 200:
+            print(f"    ❌ Failed to get users: {response.status_code}")
+            print(f"       Response: {response.text}")
         self.assertEqual(response.status_code, 200)
         users = response.json()
         

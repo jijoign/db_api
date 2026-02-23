@@ -16,7 +16,7 @@ class ExecutableTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         """Set up test environment."""
-        cls.dist_dir = Path("dist")
+        cls.dist_dir = Path("dist/rest-api-library-sqlite-1.0.0")
         cls.executable = cls._find_executable()
         cls.process = None
         cls.base_url = "http://localhost:8000"
@@ -36,7 +36,7 @@ class ExecutableTests(unittest.TestCase):
             ]
         
         if not executables:
-            raise FileNotFoundError("No executable found in dist/")
+            raise FileNotFoundError(f"No executable found in {cls.dist_dir}")
         
         # Return the first one (could be more sophisticated)
         return executables[0]
