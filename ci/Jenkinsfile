@@ -2,6 +2,7 @@ pipeline {
     agent any
     
     parameters {
+        string(name: 'BRANCH_NAME', defaultValue: 'main', description: 'Branch to build from')
         choice(name: 'BUILD_TYPE', choices: ['all', 'sqlite', 'postgresql', 'mysql'], description: 'Type of build to create')
         choice(name: 'BUILD_MODE', choices: ['onefile', 'onedir'], description: 'Build mode')
         booleanParam(name: 'RUN_TESTS', defaultValue: true, description: 'Run test suite')
@@ -17,8 +18,12 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                echo 'Checking out source code...'
-                checkout scm
+                echo "Checking out source code from branch: ${params.BRANCH_NAME}..."
+                checkout([
+                    $class: 'GitSCM',
+                    branches: [[name: "*/${params.BRANCH_NAME}"]],
+                    userRemoteConfigs: scm.userRemoteConfigs
+                ])
             }
         }
         

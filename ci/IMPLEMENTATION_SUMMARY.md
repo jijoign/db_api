@@ -60,6 +60,7 @@ ci/
 10. Archive Artifacts
 
 **Parameters:**
+- `BRANCH_NAME`: main (or any branch name)
 - `BUILD_TYPE`: all, sqlite, postgresql, mysql
 - `BUILD_MODE`: onefile, onedir
 - `RUN_TESTS`: true/false
@@ -247,6 +248,7 @@ Build Now
 
 // Build with parameters
 Build with Parameters
+→ BRANCH_NAME: main
 → BUILD_TYPE: sqlite
 → BUILD_MODE: onefile  
 → RUN_TESTS: true

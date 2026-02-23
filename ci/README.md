@@ -39,6 +39,7 @@ ci/
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
+| BRANCH_NAME | String | main | Branch to build from |
 | BUILD_TYPE | Choice | all | Database type (all/sqlite/postgresql/mysql) |
 | BUILD_MODE | Choice | onefile | Build mode (onefile/onedir) |
 | RUN_TESTS | Boolean | true | Run test suite |
@@ -69,7 +70,7 @@ ci/
 # Trigger build with parameters
 curl -X POST "http://jenkins-server/job/rest-api-library/buildWithParameters" \
   --user username:token \
-  --data "BUILD_TYPE=all&BUILD_MODE=onefile&RUN_TESTS=true"
+  --data "BRANCH_NAME=main&BUILD_TYPE=all&BUILD_MODE=onefile&RUN_TESTS=true"
 ```
 
 ## Test Suites

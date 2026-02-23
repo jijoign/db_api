@@ -59,10 +59,11 @@ Build with Parameters → Select options → Build
 # Via API
 curl -X POST "http://jenkins/job/rest-api-library/buildWithParameters" \
   --user username:token \
-  --data "BUILD_TYPE=all&RUN_TESTS=true"
+  --data "BRANCH_NAME=main&BUILD_TYPE=all&RUN_TESTS=true"
 ```
 
 ### Pipeline Parameters
+- **BRANCH_NAME**: main (or any branch name)
 - **BUILD_TYPE**: all, sqlite, postgresql, mysql
 - **BUILD_MODE**: onefile, onedir
 - **RUN_TESTS**: true/false
