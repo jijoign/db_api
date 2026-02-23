@@ -40,7 +40,6 @@ curl -X POST "http://jenkins/job/rest-api-library/buildWithParameters" \
 **Parameters:**
 - BRANCH_NAME: main (or any branch)
 - BUILD_TYPE: all, sqlite, postgresql, mysql
-- BUILD_MODE: onefile, onedir
 - RUN_TESTS: true/false
 - CREATE_PACKAGE: true/false
 
@@ -48,10 +47,13 @@ curl -X POST "http://jenkins/job/rest-api-library/buildWithParameters" \
 
 ```bash
 # Build all databases
-python ci/scripts/build_executable.py --type all --mode onefile
+python ci/scripts/build_executable.py --type all
 
 # Build specific database
-python ci/scripts/build_executable.py --type sqlite --mode onefile
+python ci/scripts/build_executable.py --type sqlite
+
+# Build with package
+python ci/scripts/build_executable.py --type all --package
 ```
 
 ## Code Quality

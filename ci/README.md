@@ -59,7 +59,6 @@ ci/
 |-----------|------|---------|-------------|
 | BRANCH_NAME | String | main | Branch to build from |
 | BUILD_TYPE | Choice | all | Database type (all/sqlite/postgresql/mysql) |
-| BUILD_MODE | Choice | onefile | Build mode (onefile/onedir) |
 | RUN_TESTS | Boolean | true | Run test suite |
 | CREATE_PACKAGE | Boolean | false | Create distribution package |
 
@@ -88,7 +87,7 @@ ci/
 # Trigger build with parameters
 curl -X POST "http://jenkins-server/job/rest-api-library/buildWithParameters" \
   --user username:token \
-  --data "BRANCH_NAME=main&BUILD_TYPE=all&BUILD_MODE=onefile&RUN_TESTS=true"
+  --data "BRANCH_NAME=main&BUILD_TYPE=all&RUN_TESTS=true&CREATE_PACKAGE=false"
 ```
 
 ## Test Suites
@@ -263,13 +262,16 @@ Uses mypy for static type checking.
 
 ```bash
 # Build all databases
-python ci/scripts/build_executable.py --type all --mode onefile
+python ci/scripts/build_executable.py --type all
 
 # Build SQLite only
-python ci/scripts/build_executable.py --type sqlite --mode onefile
+python ci/scripts/build_executable.py --type sqlite
 
-# Build in directory mode
-python ci/scripts/build_executable.py --type all --mode onedir
+# Build and create distribution package
+python ci/scripts/build_executable.py --type all --package
+
+# Build specific database with package
+python ci/scripts/build_executable.py --type sqlite --package
 ```
 
 ## Integration with CI/CD Platforms
@@ -299,7 +301,7 @@ jobs:
           python ci/run_tests.py
       - name: Build executable
         run: |
-          python ci/scripts/build_executable.py --type all
+          python ci/scripts/build_executable.py --type all --package
       - name: Upload artifacts
         uses: actions/upload-artifact@v2
         with:
@@ -327,7 +329,7 @@ build:
   stage: build
   script:
     - pip install -r requirements-dev.txt
-    - python ci/scripts/build_executable.py --type all
+    - python ci/scripts/build_executable.py --type all --package
   artifacts:
     paths:
       - dist/
@@ -358,7 +360,7 @@ steps:
     displayName: 'Run tests'
   
   - script: |
-      python ci/scripts/build_executable.py --type all
+      python ci/scripts/build_executable.py --type all --package
     displayName: 'Build executable'
   
   - task: PublishBuildArtifacts@1
