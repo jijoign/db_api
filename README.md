@@ -1,0 +1,326 @@
+# REST API Library
+
+A comprehensive REST API library built with **FastAPI** and **SQLAlchemy**, providing database functionality with support for multiple open-source database backends.
+
+## Features
+
+✨ **Modern FastAPI Framework** - Fast, async-ready REST API with automatic OpenAPI documentation  
+📦 **SQLAlchemy ORM** - Powerful and flexible database abstraction  
+🗄️ **Multiple Database Support** - SQLite, PostgreSQL, MySQL, and more  
+🔒 **Data Validation** - Pydantic schemas for request/response validation  
+🚀 **CRUD Operations** - Complete Create, Read, Update, Delete functionality  
+📊 **Pagination & Filtering** - Built-in pagination and search capabilities  
+🎯 **Type Safety** - Full type hints throughout the codebase  
+
+## Quick Start
+
+### Installation
+
+1. Clone the repository:
+```bash
+git clone <repository-url>
+cd repo
+```
+
+2. Create a virtual environment and activate it:
+```bash
+# Windows
+python -m venv venv
+venv\Scripts\activate
+
+# Linux/Mac
+python -m venv venv
+source venv/bin/activate
+```
+
+3. Install dependencies:
+```bash
+pip install -r requirements.txt
+```
+
+4. Configure environment (optional):
+```bash
+cp .env.example .env
+# Edit .env with your database settings
+```
+
+### Running the API
+
+Start the development server:
+```bash
+# Using uvicorn directly
+uvicorn app.main:app --reload
+
+# Or using the main module
+python -m app.main
+```
+
+The API will be available at:
+- **API**: http://localhost:8000
+- **Interactive Docs (Swagger UI)**: http://localhost:8000/docs
+- **Alternative Docs (ReDoc)**: http://localhost:8000/redoc
+
+## Database Configuration
+
+The library uses **SQLite** by default (no setup required). To use other databases, update the `DATABASE_URL` in your `.env` file:
+
+### PostgreSQL
+```env
+DATABASE_URL=postgresql://username:password@localhost/dbname
+```
+
+### MySQL
+```env
+DATABASE_URL=mysql://username:password@localhost/dbname
+```
+
+### SQLite (default)
+```env
+DATABASE_URL=sqlite:///./app.db
+```
+
+## Building Executables
+
+Package the API as standalone executables for distribution to systems without Python:
+
+### Quick Build
+
+```bash
+# Install build tools
+pip install -r requirements-dev.txt
+
+# Build executable (all databases)
+python build.py
+
+# Build database-specific versions
+python build_databases.py sqlite      # SQLite only (~40 MB)
+python build_databases.py postgresql  # PostgreSQL
+python build_databases.py mysql       # MySQL
+python build_databases.py all         # All versions
+```
+
+### Using Build Scripts
+
+**Windows:**
+```cmd
+build.bat          # Default build
+build.bat sqlite   # SQLite version
+build.bat package  # Create distribution
+```
+
+**Linux/Mac:**
+```bash
+chmod +x build.sh
+./build.sh         # Default build
+./build.sh sqlite  # SQLite version
+./build.sh package # Create distribution
+```
+
+**Output:** Executables in `dist/` folder
+
+📖 **Detailed build instructions:** See [BUILD.md](BUILD.md) or [BUILD_QUICK.md](BUILD_QUICK.md)
+
+## API Endpoints
+
+### Users
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/users/` | Create a new user |
+| GET | `/api/users/` | List all users (with pagination) |
+| GET | `/api/users/{user_id}` | Get a specific user |
+| PUT | `/api/users/{user_id}` | Update a user |
+| DELETE | `/api/users/{user_id}` | Delete a user |
+
+### Items
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/items/` | Create a new item |
+| GET | `/api/items/` | List all items (with pagination) |
+| GET | `/api/items/{item_id}` | Get a specific item |
+| PUT | `/api/items/{item_id}` | Update an item |
+| DELETE | `/api/items/{item_id}` | Delete an item |
+
+## Usage Examples
+
+### Create a User
+```bash
+curl -X POST "http://localhost:8000/api/users/" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "username": "johndoe",
+    "email": "john@example.com",
+    "full_name": "John Doe",
+    "is_active": true
+  }'
+```
+
+### Get All Users
+```bash
+curl "http://localhost:8000/api/users/?skip=0&limit=10"
+```
+
+### Create an Item
+```bash
+curl -X POST "http://localhost:8000/api/items/" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "Laptop",
+    "description": "High-performance laptop",
+    "price": 99999,
+    "is_available": true
+  }'
+```
+
+### Search Items
+```bash
+curl "http://localhost:8000/api/items/?search=laptop"
+```
+
+## Project Structure
+
+```
+repo/
+├── app/
+│   ├── __init__.py          # Package initialization
+│   ├── main.py              # FastAPI application
+│   ├── database.py          # Database configuration
+│   ├── models.py            # SQLAlchemy models
+│   ├── schemas.py           # Pydantic schemas
+│   ├── crud.py              # CRUD operations
+│   └── routes.py            # API endpoints
+├── config.py                # Configuration settings
+├── requirements.txt         # Python dependencies
+├── .env.example            # Environment variables template
+├── .gitignore              # Git ignore rules
+└── README.md               # This file
+```
+
+## Extending the Library
+
+### Adding a New Model
+
+1. **Define the model** in `app/models.py`:
+```python
+class Product(Base):
+    __tablename__ = "products"
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(100), nullable=False)
+    # ... more fields
+```
+
+2. **Create schemas** in `app/schemas.py`:
+```python
+class ProductBase(BaseModel):
+    name: str
+    # ... more fields
+
+class ProductCreate(ProductBase):
+    pass
+
+class ProductResponse(ProductBase):
+    id: int
+    model_config = ConfigDict(from_attributes=True)
+```
+
+3. **Add CRUD operations** in `app/crud.py`:
+```python
+class CRUDProduct(CRUDBase[models.Product, schemas.ProductCreate, schemas.ProductUpdate]):
+    pass
+
+product = CRUDProduct(models.Product)
+```
+
+4. **Create routes** in `app/routes.py`:
+```python
+product_router = APIRouter(prefix="/products", tags=["products"])
+
+@product_router.post("/", response_model=schemas.ProductResponse)
+def create_product(product: schemas.ProductCreate, db: Session = Depends(get_db)):
+    return crud.product.create(db=db, obj_in=product)
+```
+
+5. **Register the router** in `app/main.py`:
+```python
+from app.routes import product_router
+app.include_router(product_router, prefix="/api")
+```
+
+## Development
+
+### Running Tests
+```bash
+pytest
+```
+
+### Code Formatting
+```bash
+black .
+isort .
+```
+
+### Type Checking
+```bash
+mypy app/
+```
+
+## Requirements
+
+- Python 3.8+
+- FastAPI
+- SQLAlchemy
+- Uvicorn
+- Pydantic
+
+See `requirements.txt` for complete list.
+
+## CI/CD & Testing
+
+The project includes comprehensive CI/CD pipeline and testing infrastructure:
+
+### Jenkins Integration
+- Automated builds with Jenkins pipeline
+- Multi-database build support
+- Automated testing and verification
+- Build artifact archiving
+
+### Test Suites
+- ✅ **Build Verification** - Validate build artifacts
+- ✅ **Installer Tests** - Package structure validation  
+- ✅ **Executable Tests** - Functionality testing
+- ✅ **Database Integration** - Multi-database testing
+- ✅ **Performance Tests** - Load and performance benchmarks
+
+### Quick Test Commands
+
+```bash
+# Verify CI/CD setup
+python ci/verify_setup.py
+
+# Run all tests
+python ci/run_tests.py
+
+# Run specific test suite
+python ci/run_tests.py --suite executable
+
+# Skip slow tests
+python ci/run_tests.py --skip-slow
+
+# Clean artifacts
+python ci/clean_artifacts.py
+```
+
+📖 **Detailed CI/CD documentation:** See [ci/README.md](ci/README.md)
+
+## License
+
+This project is open source and available under the MIT License.
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+## Support
+
+For issues and questions, please open an issue on the repository.
