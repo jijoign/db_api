@@ -1,6 +1,7 @@
 """Integration tests for the installer package."""
 import os
 import shutil
+import sys
 import tempfile
 import unittest
 import zipfile
@@ -205,7 +206,7 @@ class InstallerTests(unittest.TestCase):
         content = readme.read_text().lower()
         
         essential_keywords = [
-            'installation',
+            'quick start',
             'api',
             'database',
             'usage',

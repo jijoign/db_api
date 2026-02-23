@@ -12,6 +12,8 @@ class BuildVerifier:
         self.dist_dir = Path("dist")
         self.errors = []
         self.warnings = []
+        # Extensions to exclude from executable checks
+        self.exclude_exts = {'.txt', '.md', '.spec', '.toc', '.log', '.xml', '.json'}
     
     def verify_directory_exists(self):
         """Check if dist directory exists."""
@@ -26,17 +28,15 @@ class BuildVerifier:
         """Check if executables are built."""
         print("\nChecking for executables...")
         
-        # Look for any executable files
+        # Look for actual executable files (not docs or artifacts)
         if sys.platform == 'win32':
             executables = list(self.dist_dir.glob("*.exe"))
         else:
-            # On Unix, look for files without extension or specific names
+            # On Unix, look for files without extension containing 'rest-api-library'
             executables = [
                 f for f in self.dist_dir.iterdir()
-                if f.is_file() and (
-                    'rest-api-library' in f.name or
-                    not f.suffix
-                )
+                if f.is_file() and 'rest-api-library' in f.name
+                and not f.suffix  # No extension = executable on Unix
             ]
         
         if not executables:
@@ -58,9 +58,11 @@ class BuildVerifier:
         if sys.platform == 'win32':
             executables = list(self.dist_dir.glob("*.exe"))
         else:
+            # Only check actual executables (no extension on Unix)
             executables = [
                 f for f in self.dist_dir.iterdir()
                 if f.is_file() and 'rest-api-library' in f.name
+                and not f.suffix  # Exclude .txt, .md, etc.
             ]
         
         for exe in executables:
@@ -89,9 +91,11 @@ class BuildVerifier:
         if sys.platform == 'win32':
             files = list(self.dist_dir.glob("*.exe"))
         else:
+            # Only checksum actual executables
             files = [
                 f for f in self.dist_dir.iterdir()
                 if f.is_file() and 'rest-api-library' in f.name
+                and not f.suffix  # Exclude .txt, .md, etc.
             ]
         
         checksums = []

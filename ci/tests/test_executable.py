@@ -28,9 +28,11 @@ class ExecutableTests(unittest.TestCase):
         if sys.platform == 'win32':
             executables = list(cls.dist_dir.glob("rest-api-library*.exe"))
         else:
+            # On Unix, executables have no extension
             executables = [
                 f for f in cls.dist_dir.iterdir()
-                if f.is_file() and 'rest-api-library' in f.name and f.suffix != '.txt'
+                if f.is_file() and 'rest-api-library' in f.name 
+                and not f.suffix  # Exclude files with extensions (.txt, .md, etc.)
             ]
         
         if not executables:
