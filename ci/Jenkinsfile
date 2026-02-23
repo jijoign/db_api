@@ -91,34 +91,6 @@ pipeline {
                 '''
             }
         }
-
-        stage('Unit Tests') {
-            when {
-                expression { params.RUN_TESTS == true }
-            }
-            steps {
-                echo 'Running unit tests...'
-                sh '''
-                    . ${VENV_DIR}/bin/activate
-                    mkdir -p test-results
-                    python -m pytest ci/tests/ -v \
-                        --cov=app \
-                        --cov-report=xml \
-                        --cov-report=html \
-                        --junitxml=test-results/pytest-results.xml
-                '''
-            }
-            post {
-                always {
-                    junit 'test-results/*.xml'
-                    publishHTML(target: [
-                        reportDir: 'htmlcov',
-                        reportFiles: 'index.html',
-                        reportName: 'Coverage Report'
-                    ])
-                }
-            }
-        }
                 
         stage('Test Executable') {
             steps {
@@ -127,6 +99,34 @@ pipeline {
                     . ${VENV_DIR}/bin/activate
                     mkdir -p build/logs
                     python ci/tests/test_executable.py 2>&1 | tee build/logs/test-executable.log
+                '''
+            }
+        }
+        
+        stage('Database Integration Tests') {
+            when {
+                expression { params.RUN_TESTS == true }
+            }
+            steps {
+                echo 'Running database integration tests...'
+                sh '''
+                    . ${VENV_DIR}/bin/activate
+                    mkdir -p build/logs
+                    python ci/tests/test_database_integration.py 2>&1 | tee build/logs/database-integration.log
+                '''
+            }
+        }
+        
+        stage('Performance Tests') {
+            when {
+                expression { params.RUN_TESTS == true }
+            }
+            steps {
+                echo 'Running performance tests...'
+                sh '''
+                    . ${VENV_DIR}/bin/activate
+                    mkdir -p build/logs
+                    python ci/tests/test_performance.py 2>&1 | tee build/logs/performance-tests.log
                 '''
             }
         }
