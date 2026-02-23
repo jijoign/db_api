@@ -14,51 +14,16 @@ A comprehensive REST API library built with **FastAPI** and **SQLAlchemy**, prov
 
 ## Quick Start
 
-### Installation
+**New to this project?** See [QUICKSTART.md](QUICKSTART.md) for step-by-step setup instructions.
 
-1. Clone the repository:
+**Quick commands:**
 ```bash
-git clone <repository-url>
-cd repo
+pip install -r requirements.txt      # Install dependencies
+python db_manager.py create          # Create database tables
+python run.py                         # Start server
 ```
 
-2. Create a virtual environment and activate it:
-```bash
-# Windows
-python -m venv venv
-venv\Scripts\activate
-
-# Linux/Mac
-python -m venv venv
-source venv/bin/activate
-```
-
-3. Install dependencies:
-```bash
-pip install -r requirements.txt
-```
-
-4. Configure environment (optional):
-```bash
-cp .env.example .env
-# Edit .env with your database settings
-```
-
-### Running the API
-
-Start the development server:
-```bash
-# Using uvicorn directly
-uvicorn app.main:app --reload
-
-# Or using the main module
-python -m app.main
-```
-
-The API will be available at:
-- **API**: http://localhost:8000
-- **Interactive Docs (Swagger UI)**: http://localhost:8000/docs
-- **Alternative Docs (ReDoc)**: http://localhost:8000/redoc
+Visit http://localhost:8000/docs for interactive API documentation.
 
 ## Database Configuration
 
@@ -101,13 +66,6 @@ python build_databases.py all         # All versions
 
 ### Using Build Scripts
 
-**Windows:**
-```cmd
-build.bat          # Default build
-build.bat sqlite   # SQLite version
-build.bat package  # Create distribution
-```
-
 **Linux/Mac:**
 ```bash
 chmod +x build.sh
@@ -118,7 +76,7 @@ chmod +x build.sh
 
 **Output:** Executables in `dist/` folder
 
-📖 **Detailed build instructions:** See [BUILD.md](BUILD.md) or [BUILD_QUICK.md](BUILD_QUICK.md)
+📖 **Detailed instructions:** See [BUILD.md](BUILD.md)
 
 ## API Endpoints
 
@@ -148,7 +106,7 @@ chmod +x build.sh
 ```bash
 curl -X POST "http://localhost:8000/api/users/" \
   -H "Content-Type: application/json" \
-  -d '{
+  -d '{instructions:** See [BUILD.md](BUILD
     "username": "johndoe",
     "email": "john@example.com",
     "full_name": "John Doe",

@@ -16,8 +16,7 @@ Welcome! This document helps you navigate all the documentation for the REST API
 
 | Document | Purpose | When to Use |
 |----------|---------|-------------|
-| [BUILD.md](BUILD.md) | Build documentation | Create executables (detailed) |
-| [BUILD_QUICK.md](BUILD_QUICK.md) | Quick build reference | Quick build commands |
+| [BUILD.md](BUILD.md) | Build documentation | Create executables |
 | [DEPLOYMENT.md](DEPLOYMENT.md) | Deployment guide | Production deployment |
 
 ### Build Scripts
@@ -26,7 +25,6 @@ Welcome! This document helps you navigate all the documentation for the REST API
 |--------|---------|----------|
 | [build.py](build.py) | Main build script | All platforms |
 | [build_databases.py](build_databases.py) | Database-specific builds | All platforms |
-| [build.bat](build.bat) | Quick build wrapper | Windows |
 | [build.sh](build.sh) | Quick build wrapper | Linux/Mac |
 | [api_library.spec](api_library.spec) | PyInstaller spec file | All platforms |
 
@@ -58,8 +56,7 @@ Welcome! This document helps you navigate all the documentation for the REST API
 → Read [README.md](README.md)
 
 #### Build an Executable
-→ Read [BUILD_QUICK.md](BUILD_QUICK.md) for quick commands  
-→ Read [BUILD.md](BUILD.md) for detailed instructions
+→ Read [BUILD.md](BUILD.md)
 
 #### Deploy to Production
 → Read [DEPLOYMENT.md](DEPLOYMENT.md)
@@ -84,16 +81,15 @@ Welcome! This document helps you navigate all the documentation for the REST API
 1. [README.md](README.md) - Overview
 2. [QUICKSTART.md](QUICKSTART.md) - Setup
 3. Explore `app/` directory - Code structure
-4. [BUILD_QUICK.md](BUILD_QUICK.md) - Build basics
+4. [BUILD.md](BUILD.md) - Build basics
 5. [ci/README.md](ci/README.md) - CI/CD and testing
 
 ### DevOps Engineer
 1. [README.md](README.md) - Overview
 2. [BUILD.md](BUILD.md) - Building executables
 3. [DEPLOYMENT.md](DEPLOYMENT.md) - Production deployment
-4. [ci/README.md](ci/README.md) - CI/CD pipeline setup
-5. [ci/IMPLEMENTATION_SUMMARY.md](ci/IMPLEMENTATION_SUMMARY.md) - CI/CD details
-6. [db_manager.py](db_manager.py) - Database management
+4. [ci/README.md](ci/README.md) - CI/CD pipeline
+5. [db_manager.py](db_manager.py) - Database management
 
 ## 🏗️ Project Structure
 
@@ -102,15 +98,13 @@ repo/
 ├── 📄 Documentation
 │   ├── README.md              # Main documentation
 │   ├── QUICKSTART.md         # Quick start guide
-│   ├── BUILD.md              # Build documentation (detailed)
-│   ├── BUILD_QUICK.md        # Build quick reference
+│   ├── BUILD.md              # Build documentation
 │   ├── DEPLOYMENT.md         # Deployment guide
 │   └── DOCUMENTATION_INDEX.md # This file
 │
 ├── 🔨 Build Scripts
 │   ├── build.py              # Main build script
 │   ├── build_databases.py    # Database-specific builds
-│   ├── build.bat             # Windows build wrapper
 │   ├── build.sh              # Linux/Mac build wrapper
 │   └── api_library.spec      # PyInstaller spec file
 │
@@ -118,8 +112,7 @@ repo/
 │   └── ci/
 │       ├── Jenkinsfile            # Jenkins pipeline
 │       ├── README.md              # CI/CD documentation
-│       ├── QUICK_REFERENCE.md     # Quick commands
-│       ├── IMPLEMENTATION_SUMMARY.md # System overview
+│       ├── QUICK_REFERENCE.md     # Essential commands
 │       ├── run_tests.py           # Master test runner
 │       ├── verify_setup.py        # Setup verification
 │       ├── clean_artifacts.py     # Cleanup utility

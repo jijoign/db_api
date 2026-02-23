@@ -222,18 +222,7 @@ def create_distribution_package():
 
 
 def create_startup_scripts(package_dir):
-    """Create platform-specific startup scripts."""
-    
-    # Windows batch file
-    bat_content = f"""@echo off
-echo Starting REST API Library...
-echo.
-"{PROJECT_NAME}.exe"
-pause
-"""
-    with open(package_dir / "start.bat", "w") as f:
-        f.write(bat_content)
-    print("  ✓ Created start.bat")
+    """Create startup script for Unix systems."""
     
     # Linux/Mac shell script
     sh_content = f"""#!/bin/bash
@@ -246,8 +235,7 @@ echo
         f.write(sh_content)
     
     # Make executable on Unix systems
-    if sys.platform != "win32":
-        os.chmod(sh_file, 0o755)
+    os.chmod(sh_file, 0o755)
     
     print("  ✓ Created start.sh")
 
@@ -320,7 +308,6 @@ def main():
     print("\nTo run:")
     print(f"  ./{DIST_DIR}/{PROJECT_NAME}")
     print("\nTo build installer packages:")
-    print("  - Windows: Use Inno Setup or NSIS")
     print("  - macOS: Use create-dmg or pkgbuild")
     print("  - Linux: Create .deb or .rpm packages")
 

@@ -14,7 +14,6 @@ This installs PyInstaller and other build tools.
 
 ### 2. Supported Platforms
 
-- **Windows**: Builds `.exe` executables
 - **Linux**: Builds ELF executables
 - **macOS**: Builds Mach-O executables
 
@@ -30,7 +29,7 @@ Build a single executable with support for all databases:
 python build.py
 ```
 
-This creates `dist/rest-api-library.exe` (or equivalent on your platform) with SQLite, PostgreSQL, and MySQL support.
+This creates `dist/rest-api-library` (or equivalent on your platform) with SQLite, PostgreSQL, and MySQL support.
 
 ### Method 2: Database-Specific Builds
 
@@ -109,16 +108,15 @@ After building, you'll find:
 
 ```
 dist/
-├── rest-api-library.exe          # Main executable
-├── rest-api-library-sqlite.exe   # SQLite-specific
-├── rest-api-library-postgresql.exe  # PostgreSQL-specific
-├── rest-api-library-mysql.exe    # MySQL-specific
-└── rest-api-library-1.0.0/       # Distribution package (with --package)
-    ├── rest-api-library.exe
+├── rest-api-library             # Main executable
+├── rest-api-library-sqlite      # SQLite-specific
+├── rest-api-library-postgresql  # PostgreSQL-specific
+├── rest-api-library-mysql       # MySQL-specific
+└── rest-api-library-1.0.0/      # Distribution package (with --package)
+    ├── rest-api-library
     ├── .env
     ├── README.md
     ├── QUICKSTART.md
-    ├── start.bat                # Windows launcher
     └── start.sh                 # Unix launcher
 ```
 
@@ -159,54 +157,17 @@ This creates a ZIP file with:
 3. **Create distribution folder**:
    ```bash
    mkdir release
-   cp dist/rest-api-library.exe release/
+   cp dist/rest-api-library release/
    cp .env.example release/.env
    cp README.md QUICKSTART.md release/
    ```
 
 4. **Compress**:
    ```bash
-   # Windows
-   Compress-Archive -Path release -DestinationPath rest-api-library-v1.0.0-windows.zip
-   
-   # Linux/Mac
    tar -czf rest-api-library-v1.0.0-linux.tar.gz release/
    ```
 
 ## Platform-Specific Instructions
-
-### Windows
-
-#### Building on Windows
-
-```bash
-python build.py
-```
-
-Output: `dist/rest-api-library.exe`
-
-#### Creating Installer (Optional)
-
-Use **Inno Setup** or **NSIS** to create a proper installer:
-
-1. Install Inno Setup
-2. Create a script file:
-
-```innosetup
-[Setup]
-AppName=REST API Library
-AppVersion=1.0.0
-DefaultDirName={pf}\REST API Library
-OutputBaseFilename=rest-api-library-setup
-
-[Files]
-Source: "dist\rest-api-library.exe"; DestDir: "{app}"
-Source: ".env.example"; DestDir: "{app}"; DestName: ".env"
-Source: "README.md"; DestDir: "{app}"
-
-[Icons]
-Name: "{commonprograms}\REST API Library"; Filename: "{app}\rest-api-library.exe"
-```
 
 ### Linux
 
@@ -386,7 +347,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [windows-latest, ubuntu-latest, macos-latest]
+        os: [ubuntu-latest, macos-latest]
     
     steps:
     - uses: actions/checkout@v2
@@ -422,7 +383,6 @@ jobs:
 
 - [PyInstaller Documentation](https://pyinstaller.readthedocs.io/)
 - [PyInstaller Spec Files](https://pyinstaller.readthedocs.io/en/stable/spec-files.html)
-- [Inno Setup](https://jrsoftware.org/isinfo.php) (Windows installers)
 - [create-dmg](https://github.com/create-dmg/create-dmg) (macOS installers)
 
 ## Support

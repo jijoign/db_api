@@ -72,7 +72,7 @@ def verify_ci_setup():
     print("\n🏃 Checking test runners...")
     all_checks.append(check_file_exists("ci/run_tests.py", "Master test runner"))
     all_checks.append(check_file_exists("ci/run_tests.sh", "Unix test runner"))
-    all_checks.append(check_file_exists("ci/run_tests.bat", "Windows test runner"))
+
     
     # Check documentation
     print("\n📚 Checking documentation...")

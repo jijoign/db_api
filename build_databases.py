@@ -142,8 +142,7 @@ QUICK START
 
 2. Run the executable:
 
-   Windows: {exe_name}.exe
-   Linux/Mac: ./{exe_name}
+   ./{exe_name}
 
 3. Access the API:
    - API: http://localhost:8000

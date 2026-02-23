@@ -10,7 +10,6 @@ ci/
 ├── README.md                         # This file
 ├── run_tests.py                      # Master test runner
 ├── run_tests.sh                      # Unix test runner script
-├── run_tests.bat                     # Windows test runner script
 ├── scripts/                          # Build and verification scripts
 │   ├── build_executable.py          # Build executables for CI/CD
 │   ├── verify_build.py              # Verify build artifacts
@@ -166,9 +165,6 @@ python ci/tests/test_performance.py
 ```bash
 # Unix/Mac
 ./ci/run_tests.sh
-
-# Windows
-ci\run_tests.bat
 
 # Or directly with Python
 python ci/run_tests.py
@@ -402,11 +398,7 @@ Tests use ports 8000-8200. If ports are busy:
 
 ```bash
 # Find process using port
-# Linux/Mac
 lsof -i :8000
-
-# Windows
-netstat -ano | findstr :8000
 
 # Kill the process or wait for tests to finish
 ```

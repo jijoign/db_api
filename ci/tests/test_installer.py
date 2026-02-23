@@ -191,17 +191,14 @@ class InstallerTests(unittest.TestCase):
         all_files = list(extract_dir.rglob("*"))
         file_names = [f.name for f in all_files]
         
-        has_bat = 'start.bat' in file_names
         has_sh = 'start.sh' in file_names
         
-        # Should have at least one startup script
+        # Should have Unix startup script
         self.assertTrue(
-            has_bat or has_sh,
-            "Package missing startup scripts"
+            has_sh,
+            \"Package missing startup script (start.sh)\"
         )
         
-        if has_bat:
-            print("  ✓ Windows startup script (start.bat) present")
         if has_sh:
             print("  ✓ Unix startup script (start.sh) present")
     

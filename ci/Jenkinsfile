@@ -30,25 +30,13 @@ pipeline {
         stage('Setup Python Environment') {
             steps {
                 echo "Setting up Python ${PYTHON_VERSION} environment..."
-                script {
-                    if (isUnix()) {
-                        sh '''
-                            python3 -m venv ${VENV_DIR}
-                            . ${VENV_DIR}/bin/activate
-                            pip install --upgrade pip
-                            pip install -r requirements.txt
-                            pip install -r requirements-dev.txt
-                        '''
-                    } else {
-                        bat '''
-                            python -m venv %VENV_DIR%
-                            call %VENV_DIR%\\Scripts\\activate.bat
-                            pip install --upgrade pip
-                            pip install -r requirements.txt
-                            pip install -r requirements-dev.txt
-                        '''
-                    }
-                }
+                sh '''
+                    python3 -m venv ${VENV_DIR}
+                    . ${VENV_DIR}/bin/activate
+                    pip install --upgrade pip
+                    pip install -r requirements.txt
+                    pip install -r requirements-dev.txt
+                '''
             }
         }
         
@@ -57,38 +45,20 @@ pipeline {
                 stage('Linting') {
                     steps {
                         echo 'Running linting checks...'
-                        script {
-                            if (isUnix()) {
-                                sh '''
-                                    . ${VENV_DIR}/bin/activate
-                                    python ci/scripts/lint_check.py
-                                '''
-                            } else {
-                                bat '''
-                                    call %VENV_DIR%\\Scripts\\activate.bat
-                                    python ci\\scripts\\lint_check.py
-                                '''
-                            }
-                        }
+                        sh '''
+                            . ${VENV_DIR}/bin/activate
+                            python ci/scripts/lint_check.py
+                        '''
                     }
                 }
                 
                 stage('Type Checking') {
                     steps {
                         echo 'Running type checks...'
-                        script {
-                            if (isUnix()) {
-                                sh '''
-                                    . ${VENV_DIR}/bin/activate
-                                    python ci/scripts/type_check.py
-                                '''
-                            } else {
-                                bat '''
-                                    call %VENV_DIR%\\Scripts\\activate.bat
-                                    python ci\\scripts\\type_check.py
-                                '''
-                            }
-                        }
+                        sh '''
+                            . ${VENV_DIR}/bin/activate
+                            python ci/scripts/type_check.py
+                        '''
                     }
                 }
             }
@@ -100,19 +70,10 @@ pipeline {
             }
             steps {
                 echo 'Running unit tests...'
-                script {
-                    if (isUnix()) {
-                        sh '''
-                            . ${VENV_DIR}/bin/activate
-                            python -m pytest tests/ -v --cov=app --cov-report=xml --cov-report=html
-                        '''
-                    } else {
-                        bat '''
-                            call %VENV_DIR%\\Scripts\\activate.bat
-                            python -m pytest tests\\ -v --cov=app --cov-report=xml --cov-report=html
-                        '''
-                    }
-                }
+                sh '''
+                    . ${VENV_DIR}/bin/activate
+                    python -m pytest tests/ -v --cov=app --cov-report=xml --cov-report=html
+                '''
             }
             post {
                 always {
@@ -129,76 +90,40 @@ pipeline {
         stage('Build Executable') {
             steps {
                 echo "Building executable: ${params.BUILD_TYPE} (${params.BUILD_MODE})..."
-                script {
-                    if (isUnix()) {
-                        sh """
-                            . ${VENV_DIR}/bin/activate
-                            python ci/scripts/build_executable.py --type ${params.BUILD_TYPE} --mode ${params.BUILD_MODE}
-                        """
-                    } else {
-                        bat """
-                            call %VENV_DIR%\\Scripts\\activate.bat
-                            python ci\\scripts\\build_executable.py --type ${params.BUILD_TYPE} --mode ${params.BUILD_MODE}
-                        """
-                    }
-                }
+                sh """
+                    . ${VENV_DIR}/bin/activate
+                    python ci/scripts/build_executable.py --type ${params.BUILD_TYPE} --mode ${params.BUILD_MODE}
+                """
             }
         }
         
         stage('Verify Build') {
             steps {
                 echo 'Verifying build artifacts...'
-                script {
-                    if (isUnix()) {
-                        sh '''
-                            . ${VENV_DIR}/bin/activate
-                            python ci/scripts/verify_build.py
-                        '''
-                    } else {
-                        bat '''
-                            call %VENV_DIR%\\Scripts\\activate.bat
-                            python ci\\scripts\\verify_build.py
-                        '''
-                    }
-                }
+                sh '''
+                    . ${VENV_DIR}/bin/activate
+                    python ci/scripts/verify_build.py
+                '''
             }
         }
         
         stage('Test Executable') {
             steps {
                 echo 'Testing executable...'
-                script {
-                    if (isUnix()) {
-                        sh '''
-                            . ${VENV_DIR}/bin/activate
-                            python ci/tests/test_executable.py
-                        '''
-                    } else {
-                        bat '''
-                            call %VENV_DIR%\\Scripts\\activate.bat
-                            python ci\\tests\\test_executable.py
-                        '''
-                    }
-                }
+                sh '''
+                    . ${VENV_DIR}/bin/activate
+                    python ci/tests/test_executable.py
+                '''
             }
         }
         
         stage('Integration Tests') {
             steps {
                 echo 'Running integration tests...'
-                script {
-                    if (isUnix()) {
-                        sh '''
-                            . ${VENV_DIR}/bin/activate
-                            python ci/tests/test_installer.py
-                        '''
-                    } else {
-                        bat '''
-                            call %VENV_DIR%\\Scripts\\activate.bat
-                            python ci\\tests\\test_installer.py
-                        '''
-                    }
-                }
+                sh '''
+                    . ${VENV_DIR}/bin/activate
+                    python ci/tests/test_installer.py
+                '''
             }
         }
         
@@ -208,19 +133,10 @@ pipeline {
             }
             steps {
                 echo 'Creating distribution package...'
-                script {
-                    if (isUnix()) {
-                        sh '''
-                            . ${VENV_DIR}/bin/activate
-                            python build.py --package
-                        '''
-                    } else {
-                        bat '''
-                            call %VENV_DIR%\\Scripts\\activate.bat
-                            python build.py --package
-                        '''
-                    }
-                }
+                sh '''
+                    . ${VENV_DIR}/bin/activate
+                    python build.py --package
+                '''
             }
         }
         

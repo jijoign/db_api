@@ -17,7 +17,7 @@ This guide covers deploying the REST API Library executable in production enviro
 
 ### System Requirements
 
-- **OS**: Windows Server 2016+, Ubuntu 20.04+, CentOS 7+, macOS 10.15+
+- **OS**: Ubuntu 20.04+, CentOS 7+, macOS 10.15+
 - **RAM**: 512 MB minimum, 1 GB recommended
 - **Disk**: 100 MB for executable + database storage
 - **Network**: Port 8000 (default) or custom port
@@ -167,31 +167,7 @@ sudo systemctl status rest-api    # Check status
 journalctl -u rest-api -f        # View logs
 ```
 
-### Method 3: Windows Service
-
-Use **NSSM** (Non-Sucking Service Manager):
-
-```cmd
-# 1. Download NSSM from https://nssm.cc/download
-
-# 2. Install service
-nssm install RestAPI "C:\api\rest-api-library.exe"
-
-# 3. Configure
-nssm set RestAPI AppDirectory "C:\api"
-nssm set RestAPI AppStdout "C:\api\logs\output.log"
-nssm set RestAPI AppStderr "C:\api\logs\error.log"
-
-# 4. Start service
-nssm start RestAPI
-
-# Manage
-nssm stop RestAPI
-nssm restart RestAPI
-nssm status RestAPI
-```
-
-### Method 4: Docker Container
+### Method 3: Docker Container
 
 Even though we have an executable, you can containerize it:
 
@@ -274,22 +250,6 @@ sudo chown -R apiuser:apiuser /var/log/api
 
 # 7. Start
 sudo systemctl start rest-api
-```
-
-### Windows Service - Detailed
-
-```cmd
-REM 1. Create directory
-mkdir C:\api
-mkdir C:\api\logs
-
-REM 2. Copy executable
-copy dist\rest-api-library.exe C:\api\
-
-REM 3. Create .env file
-notepad C:\api\.env
-
-REM 4. Install NSSM service (shown above)
 ```
 
 ## Security
