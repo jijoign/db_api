@@ -196,7 +196,7 @@ class InstallerTests(unittest.TestCase):
         # Should have Unix startup script
         self.assertTrue(
             has_sh,
-            \"Package missing startup script (start.sh)\"
+            "Package missing startup script (start.sh)"
         )
         
         if has_sh:

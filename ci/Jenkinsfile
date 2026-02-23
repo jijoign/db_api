@@ -45,7 +45,8 @@ pipeline {
                         echo 'Running linting checks...'
                         sh '''
                             . ${VENV_DIR}/bin/activate
-                            python ci/scripts/lint_check.py
+                            mkdir -p build/logs
+                            python ci/scripts/lint_check.py 2>&1 | tee build/logs/lint-check.log
                         '''
                     }
                 }
@@ -55,32 +56,10 @@ pipeline {
                         echo 'Running type checks...'
                         sh '''
                             . ${VENV_DIR}/bin/activate
-                            python ci/scripts/type_check.py
+                            mkdir -p build/logs
+                            python ci/scripts/type_check.py 2>&1 | tee build/logs/type-check.log
                         '''
                     }
-                }
-            }
-        }
-        
-        stage('Unit Tests') {
-            when {
-                expression { params.RUN_TESTS == true }
-            }
-            steps {
-                echo 'Running unit tests...'
-                sh '''
-                    . ${VENV_DIR}/bin/activate
-                    python -m pytest tests/ -v --cov=app --cov-report=xml --cov-report=html
-                '''
-            }
-            post {
-                always {
-                    junit '**/test-results/*.xml'
-                    publishHTML(target: [
-                        reportDir: 'htmlcov',
-                        reportFiles: 'index.html',
-                        reportName: 'Coverage Report'
-                    ])
                 }
             }
         }
@@ -95,28 +74,59 @@ pipeline {
                     }
                     sh """
                         . ${VENV_DIR}/bin/activate
-                        python ci/scripts/build_executable.py --type ${params.BUILD_TYPE} ${packageFlag}
+                        mkdir -p build/logs
+                        python ci/scripts/build_executable.py --type ${params.BUILD_TYPE} ${packageFlag} 2>&1 | tee build/logs/build-executable.log
                     """
                 }
             }
         }
-        
+
         stage('Verify Build') {
             steps {
                 echo 'Verifying build artifacts...'
                 sh '''
                     . ${VENV_DIR}/bin/activate
-                    python ci/scripts/verify_build.py
+                    mkdir -p build/logs
+                    python ci/scripts/verify_build.py 2>&1 | tee build/logs/verify-build.log
                 '''
             }
         }
-        
+
+        stage('Unit Tests') {
+            when {
+                expression { params.RUN_TESTS == true }
+            }
+            steps {
+                echo 'Running unit tests...'
+                sh '''
+                    . ${VENV_DIR}/bin/activate
+                    mkdir -p test-results
+                    python -m pytest ci/tests/ -v \
+                        --cov=app \
+                        --cov-report=xml \
+                        --cov-report=html \
+                        --junitxml=test-results/pytest-results.xml
+                '''
+            }
+            post {
+                always {
+                    junit 'test-results/*.xml'
+                    publishHTML(target: [
+                        reportDir: 'htmlcov',
+                        reportFiles: 'index.html',
+                        reportName: 'Coverage Report'
+                    ])
+                }
+            }
+        }
+                
         stage('Test Executable') {
             steps {
                 echo 'Testing executable...'
                 sh '''
                     . ${VENV_DIR}/bin/activate
-                    python ci/tests/test_executable.py
+                    mkdir -p build/logs
+                    python ci/tests/test_executable.py 2>&1 | tee build/logs/test-executable.log
                 '''
             }
         }
@@ -126,7 +136,8 @@ pipeline {
                 echo 'Running integration tests...'
                 sh '''
                     . ${VENV_DIR}/bin/activate
-                    python ci/tests/test_installer.py
+                    mkdir -p build/logs
+                    python ci/tests/test_installer.py 2>&1 | tee build/logs/integration-tests.log
                 '''
             }
         }
@@ -134,7 +145,26 @@ pipeline {
         stage('Archive Artifacts') {
             steps {
                 echo 'Archiving build artifacts...'
-                archiveArtifacts artifacts: 'dist/**/*', fingerprint: true
+                script {
+                    // Archive executables and packages
+                    archiveArtifacts artifacts: 'dist/**/*', fingerprint: true, allowEmptyArchive: true
+                    
+                    // Archive test results
+                    archiveArtifacts artifacts: 'test-results/*.xml', fingerprint: true, allowEmptyArchive: true
+                    archiveArtifacts artifacts: 'coverage.xml', fingerprint: true, allowEmptyArchive: true
+                    
+                    // Archive coverage reports
+                    archiveArtifacts artifacts: 'htmlcov/**/*', fingerprint: true, allowEmptyArchive: true
+                    
+                    // Archive build logs
+                    archiveArtifacts artifacts: 'build/logs/**/*.log', fingerprint: true, allowEmptyArchive: true
+                    archiveArtifacts artifacts: 'build/**/*.toc', fingerprint: true, allowEmptyArchive: true
+                    
+                    // Archive PyInstaller spec files
+                    archiveArtifacts artifacts: '*.spec', fingerprint: true, allowEmptyArchive: true
+                    
+                    echo 'All artifacts archived successfully'
+                }
             }
         }
     }
