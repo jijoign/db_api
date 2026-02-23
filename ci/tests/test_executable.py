@@ -62,9 +62,9 @@ DEBUG=True
         test_env = cls.dist_dir / ".env"
         test_env.write_text(env_content)
         
-        # Start executable
+        # Start executable (use just the name since cwd is dist_dir)
         cls.process = subprocess.Popen(
-            [str(cls.executable)],
+            [f"./{cls.executable.name}"],
             cwd=cls.dist_dir,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,

@@ -76,8 +76,9 @@ DEBUG=False
         if sys.platform != 'win32':
             os.chmod(temp_exe, 0o755)
         
+        # Start executable (use relative path since cwd is temp_dir)
         cls.process = subprocess.Popen(
-            [str(temp_exe)],
+            [f"./{temp_exe.name}"],
             cwd=cls.temp_dir,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
