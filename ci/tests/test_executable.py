@@ -76,6 +76,16 @@ DEBUG=True
         start_time = time.time()
         
         while time.time() - start_time < timeout:
+            # Check if process crashed
+            if cls.process.poll() is not None:
+                stdout, stderr = cls.process.communicate()
+                print(f"❌ Process crashed!")
+                print(f"Exit code: {cls.process.returncode}")
+                print(f"STDOUT: {stdout[:1000] if stdout else '(empty)'}")  # Truncate
+                print(f"STDERR: {stderr[:1000] if stderr else '(empty)'}")  # Truncate
+                cls.process = None
+                return False
+            
             try:
                 response = requests.get(f"{cls.base_url}/health", timeout=1)
                 if response.status_code == 200:
@@ -86,6 +96,16 @@ DEBUG=True
         
         # Timeout
         print("❌ Server failed to start within timeout")
+        if cls.process and cls.process.poll() is None:
+            # Process still running, try to get output before killing
+            cls.process.terminate()
+            try:
+                stdout, stderr = cls.process.communicate(timeout=2)
+                print(f"STDOUT: {stdout[:500]}")  # Truncate long output
+                print(f"STDERR: {stderr[:500]}")
+            except subprocess.TimeoutExpired:
+                cls.process.kill()
+                cls.process.wait()
         cls._stop_executable()
         return False
     
@@ -143,8 +163,10 @@ DEBUG=True
     
     def test_05_health_endpoint(self):
         """Test health endpoint."""
-        if not self.process:
-            self._start_executable()
+        # Check if process is actually running
+        if not self.__class__.process or self.__class__.process.poll() is not None:
+            started = self._start_executable()
+            self.assertTrue(started, "Failed to start executable for health check")
         
         response = requests.get(f"{self.base_url}/health")
         self.assertEqual(response.status_code, 200)
@@ -156,8 +178,10 @@ DEBUG=True
     
     def test_06_root_endpoint(self):
         """Test root endpoint."""
-        if not self.process:
-            self._start_executable()
+        # Check if process is actually running
+        if not self.__class__.process or self.__class__.process.poll() is not None:
+            started = self._start_executable()
+            self.assertTrue(started, "Failed to start executable for root endpoint test")
         
         response = requests.get(f"{self.base_url}/")
         self.assertEqual(response.status_code, 200)
@@ -169,8 +193,10 @@ DEBUG=True
     
     def test_07_docs_endpoint(self):
         """Test API documentation endpoint."""
-        if not self.process:
-            self._start_executable()
+        # Check if process is actually running
+        if not self.__class__.process or self.__class__.process.poll() is not None:
+            started = self._start_executable()
+            self.assertTrue(started, "Failed to start executable for docs test")
         
         response = requests.get(f"{self.base_url}/docs")
         self.assertEqual(response.status_code, 200)
@@ -179,8 +205,10 @@ DEBUG=True
     
     def test_08_create_user(self):
         """Test creating a user via API."""
-        if not self.process:
-            self._start_executable()
+        # Check if process is actually running
+        if not self.__class__.process or self.__class__.process.poll() is not None:
+            started = self._start_executable()
+            self.assertTrue(started, "Failed to start executable for user creation test")
         
         user_data = {
             "username": "testuser",
@@ -203,8 +231,10 @@ DEBUG=True
     
     def test_09_get_users(self):
         """Test getting users list."""
-        if not self.process:
-            self._start_executable()
+        # Check if process is actually running
+        if not self.__class__.process or self.__class__.process.poll() is not None:
+            started = self._start_executable()
+            self.assertTrue(started, "Failed to start executable for get users test")
         
         response = requests.get(f"{self.base_url}/api/users/")
         self.assertEqual(response.status_code, 200)
@@ -216,8 +246,10 @@ DEBUG=True
     
     def test_10_create_item(self):
         """Test creating an item via API."""
-        if not self.process:
-            self._start_executable()
+        # Check if process is actually running
+        if not self.__class__.process or self.__class__.process.poll() is not None:
+            started = self._start_executable()
+            self.assertTrue(started, "Failed to start executable for item creation test")
         
         item_data = {
             "title": "Test Item",
@@ -239,9 +271,9 @@ DEBUG=True
     
     def test_11_stop_executable(self):
         """Test stopping the executable."""
-        if self.process:
+        if self.__class__.process:
             self._stop_executable()
-            self.process = None
+            self.__class__.process = None
         print(f"  ✓ Executable stopped cleanly")
 
 
