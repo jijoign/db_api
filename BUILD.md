@@ -6,6 +6,19 @@ This guide explains how to package the REST API Library as standalone executable
 
 ### 1. Install Build Dependencies
 
+**Using virtual environment (recommended):**
+
+```bash
+# Create and activate virtual environment
+python3 -m venv venv
+source venv/bin/activate  # Linux/macOS
+
+# Install dependencies
+pip install -r requirements-dev.txt
+```
+
+**Without virtual environment:**
+
 ```bash
 pip install -r requirements-dev.txt
 ```
@@ -23,13 +36,13 @@ This installs PyInstaller and other build tools.
 
 ### Method 1: Quick Build (All Databases)
 
-Build a single executable with support for all databases:
+Build executables with support for all databases:
 
 ```bash
-python build.py
+python build.py all
 ```
 
-This creates `dist/rest-api-library` (or equivalent on your platform) with SQLite, PostgreSQL, and MySQL support.
+This creates database-specific executables in `dist/` with SQLite, PostgreSQL, and MySQL support.
 
 ### Method 2: Database-Specific Builds
 
@@ -37,16 +50,16 @@ Build optimized executables for specific databases:
 
 ```bash
 # Build for SQLite only (smallest size)
-python build_databases.py sqlite
+python build.py sqlite
 
 # Build for PostgreSQL
-python build_databases.py postgresql
+python build.py postgresql
 
 # Build for MySQL
-python build_databases.py mysql
+python build.py mysql
 
 # Build all database-specific versions
-python build_databases.py all
+python build.py all
 ```
 
 **Benefits**:
@@ -54,12 +67,29 @@ python build_databases.py all
 - Includes only necessary database drivers
 - Database-specific README files
 
+**Create distribution packages:**
+```bash
+# Build and package SQLite version
+python build.py sqlite --package
+
+# Build and package all versions
+python build.py all --package
+```
+
+This creates complete distribution packages (`.zip` files) with:
+- Executable
+- Database-specific README
+- Configuration file (.env)
+- Documentation
+- Startup script
+
 ### Method 3: Custom Build with Spec File
 
-For advanced customization, use the spec file:
+For advanced customization, edit the spec file:
 
 ```bash
-python build.py --spec
+# Edit api_library.spec as needed
+pyinstaller api_library.spec
 ```
 
 Edit `api_library.spec` to customize:
@@ -71,33 +101,20 @@ Edit `api_library.spec` to customize:
 
 ## Build Options
 
-### Basic Options
+### Build Options
 
 ```bash
-# Single executable file (default)
-python build.py --mode onefile
-
-# Directory bundle (faster startup)
-python build.py --mode onedir
-
 # Specific database
-python build.py --db sqlite
+python build.py sqlite
+
+# All databases
+python build.py all
 
 # Create distribution package
-python build.py --package
-```
+python build.py sqlite --package
 
-### Advanced Options
-
-```bash
-# Skip cleaning previous builds
-python build.py --no-clean
-
-# Use custom spec file
-python build.py --spec
-
-# Full example
-python build.py --db all --mode onefile --package
+# All databases with packages
+python build.py all --package
 ```
 
 ## Build Output
@@ -132,10 +149,10 @@ dist/
 
 ```bash
 # Build and create distribution package
-python build.py --package
+python build.py all --package
 ```
 
-This creates a ZIP file with:
+This creates ZIP files with:
 - Executable
 - Configuration file (.env)
 - Documentation
@@ -145,7 +162,7 @@ This creates a ZIP file with:
 
 1. **Build the executable**:
    ```bash
-   python build.py
+   python build.py all
    ```
 
 2. **Test the executable**:
@@ -174,7 +191,7 @@ This creates a ZIP file with:
 #### Building on Linux
 
 ```bash
-python build.py
+python build.py all
 ```
 
 Output: `dist/rest-api-library`
@@ -210,7 +227,7 @@ dpkg-deb --build rest-api-library_1.0.0
 #### Building on macOS
 
 ```bash
-python build.py
+python build.py all
 ```
 
 Output: `dist/rest-api-library`
@@ -278,7 +295,7 @@ hiddenimports += ['missing_module']
 **Problem**: Database connection fails
 
 **Solution**: 
-- Use `build_databases.py` for database-specific builds
+- Use `build.py` for database-specific builds
 - Ensure database drivers are in hidden imports
 
 #### 5. Runtime Errors
@@ -294,7 +311,7 @@ hiddenimports += ['missing_module']
 
 ```bash
 # Build
-python build.py
+python build.py all
 
 # Test
 cd dist
@@ -362,7 +379,7 @@ jobs:
         pip install -r requirements-dev.txt
     
     - name: Build executable
-      run: python build.py
+      run: python build.py all
     
     - name: Upload artifacts
       uses: actions/upload-artifact@v2

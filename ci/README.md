@@ -2,6 +2,25 @@
 
 This directory contains all CI/CD scripts, tests, and Jenkins pipeline configuration for the REST API Library project.
 
+## Setup
+
+### Virtual Environment (Recommended)
+
+All scripts will automatically detect and use a virtual environment if present in the `venv/` directory:
+
+```bash
+# Create virtual environment
+python3 -m venv venv
+
+# Activate it
+source venv/bin/activate  # Linux/macOS
+
+# Install dependencies
+pip install -r requirements-dev.txt
+```
+
+**Note:** If no virtual environment is detected, scripts will fall back to system Python.
+
 ## Directory Structure
 
 ```
@@ -384,7 +403,7 @@ JUnit XML test results are generated in:
 
 2. **Rebuild executable:**
    ```bash
-   python build.py
+   python build.py all
    ```
 
 3. **Run tests with verbose output:**
@@ -436,7 +455,7 @@ pip install pytest pytest-cov requests psutil
 
 3. **Check build before pushing:**
    ```bash
-   python build.py
+   python build.py all
    python ci/scripts/verify_build.py
    ```
 

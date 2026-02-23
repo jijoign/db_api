@@ -1,234 +1,211 @@
-"""Build script for creating executable packages of the REST API library.
+"""Build database-specific executables with appropriate drivers.
 
-This script uses PyInstaller to create standalone executables that can be
-distributed and run on systems without Python installed.
+This script creates optimized executables for each database type,
+including only the necessary database drivers.
 """
 import os
 import sys
-import shutil
 import subprocess
-import argparse
+import shutil
 from pathlib import Path
 
 
-# Build configuration
-PROJECT_NAME = "rest-api-library"
-VERSION = "1.0.0"
-MAIN_SCRIPT = "run.py"
-ICON_FILE = None  # Set to path of .ico file if available
+DATABASE_CONFIGS = {
+    'sqlite': {
+        'description': 'SQLite (embedded database, no external dependencies)',
+        'packages': [],
+        'hidden_imports': [],
+        'env_template': 'DATABASE_URL=sqlite:///./app.db',
+    },
+    'postgresql': {
+        'description': 'PostgreSQL database support',
+        'packages': ['psycopg2-binary'],
+        'hidden_imports': ['psycopg2', 'psycopg2.extensions', 'psycopg2.extras'],
+        'env_template': 'DATABASE_URL=postgresql://user:password@localhost/dbname',
+    },
+    'mysql': {
+        'description': 'MySQL/MariaDB database support',
+        'packages': ['pymysql'],
+        'hidden_imports': ['pymysql', 'pymysql.cursors', 'pymysql.connections'],
+        'env_template': 'DATABASE_URL=mysql+pymysql://user:password@localhost/dbname',
+    },
+}
 
-# Directories
-BUILD_DIR = Path("build")
-DIST_DIR = Path("dist")
-SPEC_DIR = Path(".")
 
-
-def clean_builds():
-    """Remove previous build artifacts."""
-    print("🧹 Cleaning previous builds...")
+def build_for_database(db_type, output_dir='dist'):
+    """Build executable for specific database type."""
     
-    dirs_to_clean = [BUILD_DIR, DIST_DIR, Path("__pycache__")]
-    for directory in dirs_to_clean:
-        if directory.exists():
-            shutil.rmtree(directory)
-            print(f"  ✓ Removed {directory}")
-    
-    # Remove spec files
-    for spec_file in Path(".").glob("*.spec"):
-        if spec_file.name != "api_library.spec":  # Keep custom spec
-            spec_file.unlink()
-            print(f"  ✓ Removed {spec_file}")
-    
-    print("✓ Clean completed\n")
-
-
-def check_dependencies():
-    """Check if required build dependencies are installed."""
-    print("🔍 Checking dependencies...")
-    
-    try:
-        import PyInstaller
-        print(f"  ✓ PyInstaller {PyInstaller.__version__} found")
-    except ImportError:
-        print("  ❌ PyInstaller not found")
-        print("  Install with: pip install -r requirements-dev.txt")
+    if db_type not in DATABASE_CONFIGS:
+        print(f"❌ Unknown database type: {db_type}")
+        print(f"   Available: {', '.join(DATABASE_CONFIGS.keys())}")
         return False
     
-    return True
-
-
-def build_executable(database_type="sqlite", onefile=True):
-    """Build executable for specific database type.
+    config = DATABASE_CONFIGS[db_type]
+    exe_name = f"rest-api-library-{db_type}"
     
-    Args:
-        database_type: Database type (sqlite, postgresql, mysql, all)
-        onefile: If True, create single executable file
-    """
-    print(f"\n📦 Building executable for {database_type.upper()}...")
+    print(f"\n{'='*60}")
+    print(f"Building: {exe_name}")
+    print(f"Database: {config['description']}")
+    print(f"{'='*60}\n")
     
-    # Determine executable name
-    exe_name = f"{PROJECT_NAME}-{database_type}" if database_type != "all" else PROJECT_NAME
+    # Install database-specific packages if needed
+    if config['packages']:
+        print(f"📦 Installing {db_type} packages...")
+        for package in config['packages']:
+            try:
+                subprocess.run(
+                    [sys.executable, '-m', 'pip', 'install', package],
+                    check=True,
+                    capture_output=True
+                )
+                print(f"  ✓ Installed {package}")
+            except subprocess.CalledProcessError as e:
+                print(f"  ⚠️  Warning: Could not install {package}")
+                print(f"     {e.stderr.decode()}")
     
-    # Base PyInstaller command
+    # Build PyInstaller command
     cmd = [
-        "pyinstaller",
-        "--name", exe_name,
-        "--clean",
-        "--noconfirm",
+        'pyinstaller',
+        '--name', exe_name,
+        '--onefile',
+        '--clean',
+        '--noconfirm',
+        '--console',
     ]
     
-    # Single file or directory bundle
-    if onefile:
-        cmd.append("--onefile")
-        print("  Mode: Single executable file")
-    else:
-        cmd.append("--onedir")
-        print("  Mode: Directory bundle")
-    
-    # Add icon if available
-    if ICON_FILE and os.path.exists(ICON_FILE):
-        cmd.extend(["--icon", ICON_FILE])
-    
-    # Hidden imports for database drivers
-    hidden_imports = [
-        "uvicorn.logging",
-        "uvicorn.loops",
-        "uvicorn.loops.auto",
-        "uvicorn.protocols",
-        "uvicorn.protocols.http",
-        "uvicorn.protocols.http.auto",
-        "uvicorn.protocols.websockets",
-        "uvicorn.protocols.websockets.auto",
-        "uvicorn.lifespan",
-        "uvicorn.lifespan.on",
+    # Add hidden imports
+    base_imports = [
+        'uvicorn.logging',
+        'uvicorn.loops.auto',
+        'uvicorn.protocols.http.auto',
+        'uvicorn.protocols.websockets.auto',
+        'uvicorn.lifespan.on',
     ]
     
-    # Add database-specific imports
-    if database_type in ["postgresql", "all"]:
-        hidden_imports.extend([
-            "psycopg2",
-            "psycopg2.extensions",
-            "psycopg2.extras",
-        ])
-    
-    if database_type in ["mysql", "all"]:
-        hidden_imports.extend([
-            "pymysql",
-            "pymysql.cursors",
-        ])
-    
-    for imp in hidden_imports:
-        cmd.extend(["--hidden-import", imp])
+    for imp in base_imports + config['hidden_imports']:
+        cmd.extend(['--hidden-import', imp])
     
     # Add data files
     cmd.extend([
-        "--add-data", f".env.example{os.pathsep}.",
-        "--add-data", f"README.md{os.pathsep}.",
-        "--add-data", f"QUICKSTART.md{os.pathsep}.",
+        '--add-data', f'.env.example{os.pathsep}.',
+        '--add-data', f'README.md{os.pathsep}.',
     ])
     
-    # Collect all from app package
-    cmd.extend([
-        "--collect-all", "fastapi",
-        "--collect-all", "pydantic",
-        "--collect-all", "sqlalchemy",
-        "--copy-metadata", "fastapi",
-        "--copy-metadata", "pydantic",
-        "--copy-metadata", "uvicorn",
-    ])
+    # Collect packages
+    for pkg in ['fastapi', 'pydantic', 'sqlalchemy']:
+        cmd.extend(['--collect-all', pkg])
+    
+    # Copy metadata
+    for pkg in ['fastapi', 'pydantic', 'uvicorn']:
+        cmd.extend(['--copy-metadata', pkg])
     
     # Main script
-    cmd.append(MAIN_SCRIPT)
+    cmd.append('run.py')
     
-    # Run PyInstaller
-    print(f"  Command: {' '.join(cmd)}")
-    print("\n  Building...")
+    # Build
+    print(f"\n🔨 Building {exe_name}...")
+    print(f"   Command: {' '.join(cmd[:5])}...")
     
     try:
         result = subprocess.run(cmd, check=True, capture_output=True, text=True)
-        print("  ✓ Build successful!")
+        print(f"✓ Build successful!\n")
+        
+        # Create database-specific README
+        create_db_readme(db_type, exe_name, output_dir)
+        
         return True
+        
     except subprocess.CalledProcessError as e:
-        print(f"  ❌ Build failed!")
-        print(f"  Error: {e.stderr}")
+        print(f"❌ Build failed!")
+        print(f"   Error: {e.stderr}")
         return False
 
 
-def build_with_spec_file():
-    """Build using custom spec file."""
-    print("\n📦 Building with custom spec file...")
+def create_db_readme(db_type, exe_name, output_dir):
+    """Create database-specific README file."""
     
-    spec_file = "api_library.spec"
-    if not os.path.exists(spec_file):
-        print(f"  ❌ Spec file {spec_file} not found")
-        return False
+    config = DATABASE_CONFIGS[db_type]
+    readme_path = Path(output_dir) / f"{exe_name}-README.txt"
     
-    cmd = ["pyinstaller", "--clean", "--noconfirm", spec_file]
+    content = f"""
+REST API Library - {db_type.upper()} Edition
+{'='*60}
+
+This executable includes support for {config['description']}.
+
+QUICK START
+-----------
+
+1. Create a .env file in the same directory as the executable:
+
+   {config['env_template']}
+
+2. Run the executable:
+
+   ./{exe_name}
+
+3. Access the API:
+   - API: http://localhost:8000
+   - Docs: http://localhost:8000/docs
+
+CONFIGURATION
+-------------
+
+Edit the .env file to customize:
+- DATABASE_URL: Database connection string
+- HOST: API server host (default: 0.0.0.0)
+- PORT: API server port (default: 8000)
+- DEBUG: Enable debug mode (default: True)
+
+"""
     
-    try:
-        subprocess.run(cmd, check=True)
-        print("  ✓ Build successful!")
-        return True
-    except subprocess.CalledProcessError as e:
-        print(f"  ❌ Build failed: {e}")
-        return False
+    if db_type == 'postgresql':
+        content += """
+POSTGRESQL SETUP
+----------------
+
+1. Install PostgreSQL server
+2. Create a database:
+   createdb myapidb
+
+3. Update .env with your connection:
+   DATABASE_URL=postgresql://username:password@localhost/myapidb
+
+"""
+    elif db_type == 'mysql':
+        content += """
+MYSQL SETUP
+-----------
+
+1. Install MySQL/MariaDB server
+2. Create a database:
+   CREATE DATABASE myapidb;
+
+3. Update .env with your connection:
+   DATABASE_URL=mysql+pymysql://username:password@localhost/myapidb
+
+"""
+    
+    content += """
+SUPPORT
+-------
+
+For more information, see README.md or visit the documentation.
+
+"""
+    
+    readme_path.write_text(content)
+    print(f"  ✓ Created {readme_path.name}")
 
 
-def create_distribution_package():
-    """Create a distribution package with documentation."""
-    print("\n📦 Creating distribution package...")
-    
-    # Create distribution directory
-    package_name = f"{PROJECT_NAME}-{VERSION}"
-    package_dir = DIST_DIR / package_name
-    
-    if package_dir.exists():
-        shutil.rmtree(package_dir)
-    
-    package_dir.mkdir(parents=True, exist_ok=True)
-    
-    # Copy executable
-    exe_files = list(DIST_DIR.glob(f"{PROJECT_NAME}*"))
-    for exe_file in exe_files:
-        if exe_file.is_file() and exe_file != package_dir:
-            shutil.copy2(exe_file, package_dir)
-            print(f"  ✓ Copied {exe_file.name}")
-    
-    # Copy documentation
-    docs = ["README.md", "QUICKSTART.md", "LICENSE" if os.path.exists("LICENSE") else None]
-    for doc in docs:
-        if doc and os.path.exists(doc):
-            shutil.copy2(doc, package_dir)
-            print(f"  ✓ Copied {doc}")
-    
-    # Copy example environment file
-    shutil.copy2(".env.example", package_dir / ".env")
-    print("  ✓ Copied .env.example as .env")
-    
-    # Create startup scripts
-    create_startup_scripts(package_dir)
-    
-    # Create zip archive
-    print(f"\n  Creating archive...")
-    archive_name = shutil.make_archive(
-        str(DIST_DIR / package_name),
-        'zip',
-        DIST_DIR,
-        package_name
-    )
-    print(f"  ✓ Created {archive_name}")
-    
-    print(f"\n✓ Distribution package ready: {archive_name}")
-
-
-def create_startup_scripts(package_dir):
+def create_startup_scripts(package_dir, exe_name):
     """Create startup script for Unix systems."""
     
     # Linux/Mac shell script
     sh_content = f"""#!/bin/bash
-echo "Starting REST API Library..."
+echo "Starting REST API Library ({exe_name})..."
 echo
-./{PROJECT_NAME}
+./{exe_name}
 """
     sh_file = package_dir / "start.sh"
     with open(sh_file, "w") as f:
@@ -237,80 +214,179 @@ echo
     # Make executable on Unix systems
     os.chmod(sh_file, 0o755)
     
-    print("  ✓ Created start.sh")
+    print(f"  ✓ Created start.sh")
+
+
+def create_distribution_package(db_type):
+    """Create a distribution package for a specific database build."""
+    print(f"\n📦 Creating distribution package for {db_type}...")
+    
+    exe_name = f"rest-api-library-{db_type}"
+    package_name = f"{exe_name}-1.0.0"
+    package_dir = Path("dist") / package_name
+    
+    if package_dir.exists():
+        shutil.rmtree(package_dir)
+    
+    package_dir.mkdir(parents=True, exist_ok=True)
+    
+    # Copy executable
+    exe_file = Path("dist") / exe_name
+    if exe_file.exists():
+        shutil.copy2(exe_file, package_dir)
+        print(f"  ✓ Copied {exe_name}")
+    else:
+        print(f"  ⚠️  Executable not found: {exe_file}")
+        return None
+    
+    # Copy database-specific README
+    readme_file = Path("dist") / f"{exe_name}-README.txt"
+    if readme_file.exists():
+        shutil.copy2(readme_file, package_dir / "README.txt")
+        print(f"  ✓ Copied database-specific README")
+    
+    # Copy main documentation
+    docs = ["README.md", "QUICKSTART.md"]
+    for doc in docs:
+        if os.path.exists(doc):
+            shutil.copy2(doc, package_dir)
+            print(f"  ✓ Copied {doc}")
+    
+    # Copy and customize .env file
+    config = DATABASE_CONFIGS[db_type]
+    env_content = f"""# {db_type.upper()} Configuration
+{config['env_template']}
+
+# Server Configuration
+HOST=0.0.0.0
+PORT=8000
+DEBUG=False
+"""
+    env_file = package_dir / ".env"
+    env_file.write_text(env_content)
+    print(f"  ✓ Created .env with {db_type} defaults")
+    
+    # Create startup scripts
+    create_startup_scripts(package_dir, exe_name)
+    
+    # Create zip archive
+    print(f"\n  Creating archive...")
+    archive_name = shutil.make_archive(
+        str(Path("dist") / package_name),
+        'zip',
+        Path("dist"),
+        package_name
+    )
+    print(f"  ✓ Created {archive_name}")
+    
+    print(f"\n✓ Distribution package ready: {archive_name}")
+    return archive_name
+
+
+def create_all_packages():
+    """Create distribution packages for all database types."""
+    print(f"\n{'='*60}")
+    print("Creating distribution packages for all builds")
+    print(f"{'='*60}")
+    
+    packages = []
+    for db_type in DATABASE_CONFIGS.keys():
+        exe_file = Path("dist") / f"rest-api-library-{db_type}"
+        if exe_file.exists():
+            archive = create_distribution_package(db_type)
+            if archive:
+                packages.append(archive)
+        else:
+            print(f"\n⚠️  Skipping {db_type}: executable not found")
+    
+    if packages:
+        print(f"\n{'='*60}")
+        print("PACKAGE SUMMARY")
+        print(f"{'='*60}")
+        for pkg in packages:
+            print(f"✓ {Path(pkg).name}")
+        print()
+    
+    return len(packages) > 0
+
+
+def build_all():
+    """Build executables for all database types."""
+    
+    print("\n" + "="*60)
+    print("Building executables for all database types")
+    print("="*60)
+    
+    results = {}
+    for db_type in DATABASE_CONFIGS.keys():
+        success = build_for_database(db_type)
+        results[db_type] = success
+    
+    # Summary
+    print("\n" + "="*60)
+    print("BUILD SUMMARY")
+    print("="*60)
+    
+    for db_type, success in results.items():
+        status = "✓" if success else "❌"
+        print(f"{status} {db_type.upper()}: {'Success' if success else 'Failed'}")
+    
+    print()
+    
+    if all(results.values()):
+        print("✓ All builds completed successfully!")
+        print(f"\nExecutables available in: {Path('dist').absolute()}")
+        return True
+    else:
+        print("⚠️  Some builds failed")
+        return False
 
 
 def main():
-    """Main build function."""
-    parser = argparse.ArgumentParser(description="Build REST API Library executable")
-    parser.add_argument(
-        "--db",
-        choices=["sqlite", "postgresql", "mysql", "all"],
-        default="all",
-        help="Database type to include support for (default: all)"
+    """Main function."""
+    import argparse
+    
+    parser = argparse.ArgumentParser(
+        description="Build database-specific executables"
     )
     parser.add_argument(
-        "--mode",
-        choices=["onefile", "onedir"],
-        default="onefile",
-        help="Build mode: single file or directory (default: onefile)"
+        'database',
+        nargs='?',
+        choices=list(DATABASE_CONFIGS.keys()) + ['all'],
+        default='all',
+        help='Database type to build for (default: all)'
     )
     parser.add_argument(
-        "--spec",
-        action="store_true",
-        help="Use custom spec file instead of command-line build"
-    )
-    parser.add_argument(
-        "--no-clean",
-        action="store_true",
-        help="Skip cleaning previous builds"
-    )
-    parser.add_argument(
-        "--package",
-        action="store_true",
-        help="Create distribution package after build"
+        '--package',
+        action='store_true',
+        help='Create distribution package after build'
     )
     
     args = parser.parse_args()
     
-    print("=" * 60)
-    print(f"REST API Library - Build Script v{VERSION}")
-    print("=" * 60)
-    
-    # Check dependencies
-    if not check_dependencies():
+    # Check PyInstaller
+    try:
+        import PyInstaller
+    except ImportError:
+        print("❌ PyInstaller not installed")
+        print("   Install with: pip install -r requirements-dev.txt")
         sys.exit(1)
-    
-    # Clean previous builds
-    if not args.no_clean:
-        clean_builds()
     
     # Build
-    success = False
-    if args.spec:
-        success = build_with_spec_file()
+    if args.database == 'all':
+        success = build_all()
     else:
-        onefile = (args.mode == "onefile")
-        success = build_executable(args.db, onefile)
+        success = build_for_database(args.database)
     
-    if not success:
-        print("\n❌ Build failed!")
-        sys.exit(1)
+    # Create distribution package if requested
+    if success and args.package:
+        if args.database == 'all':
+            create_all_packages()
+        else:
+            create_distribution_package(args.database)
     
-    # Create distribution package
-    if args.package:
-        create_distribution_package()
-    
-    print("\n" + "=" * 60)
-    print("✓ Build completed successfully!")
-    print("=" * 60)
-    print(f"\nExecutable(s) available in: {DIST_DIR.absolute()}")
-    print("\nTo run:")
-    print(f"  ./{DIST_DIR}/{PROJECT_NAME}")
-    print("\nTo build installer packages:")
-    print("  - macOS: Use create-dmg or pkgbuild")
-    print("  - Linux: Create .deb or .rpm packages")
+    sys.exit(0 if success else 1)
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()

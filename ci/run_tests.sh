@@ -14,6 +14,14 @@ if ! command -v python3 &> /dev/null; then
     exit 1
 fi
 
+# Detect and activate virtual environment
+PYTHON_CMD="python3"
+if [ -d "venv" ]; then
+    echo "Activating virtual environment..."
+    source venv/bin/activate
+    PYTHON_CMD="python"
+fi
+
 # Parse arguments
 SKIP_SLOW=false
 VERBOSE=false
@@ -41,7 +49,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 # Build command
-CMD="python3 ci/run_tests.py --suite $SUITE"
+CMD="$PYTHON_CMD ci/run_tests.py --suite $SUITE"
 
 if [ "$SKIP_SLOW" = true ]; then
     CMD="$CMD --skip-slow"

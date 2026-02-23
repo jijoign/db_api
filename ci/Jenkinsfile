@@ -4,7 +4,6 @@ pipeline {
     parameters {
         string(name: 'BRANCH_NAME', defaultValue: 'main', description: 'Branch to build from')
         choice(name: 'BUILD_TYPE', choices: ['all', 'sqlite', 'postgresql', 'mysql'], description: 'Type of build to create')
-        choice(name: 'BUILD_MODE', choices: ['onefile', 'onedir'], description: 'Build mode')
         booleanParam(name: 'RUN_TESTS', defaultValue: true, description: 'Run test suite')
         booleanParam(name: 'CREATE_PACKAGE', defaultValue: false, description: 'Create distribution package')
     }
@@ -89,11 +88,17 @@ pipeline {
         
         stage('Build Executable') {
             steps {
-                echo "Building executable: ${params.BUILD_TYPE} (${params.BUILD_MODE})..."
-                sh """
-                    . ${VENV_DIR}/bin/activate
-                    python ci/scripts/build_executable.py --type ${params.BUILD_TYPE} --mode ${params.BUILD_MODE}
-                """
+                script {
+                    def packageFlag = params.CREATE_PACKAGE ? '--package' : ''
+                    echo "Building executable: ${params.BUILD_TYPE}..."
+                    if (params.CREATE_PACKAGE) {
+                        echo "Creating distribution package..."
+                    }
+                    sh """
+                        . ${VENV_DIR}/bin/activate
+                        python ci/scripts/build_executable.py --type ${params.BUILD_TYPE} ${packageFlag}
+                    """
+                }
             }
         }
         
@@ -123,19 +128,6 @@ pipeline {
                 sh '''
                     . ${VENV_DIR}/bin/activate
                     python ci/tests/test_installer.py
-                '''
-            }
-        }
-        
-        stage('Create Package') {
-            when {
-                expression { params.CREATE_PACKAGE == true }
-            }
-            steps {
-                echo 'Creating distribution package...'
-                sh '''
-                    . ${VENV_DIR}/bin/activate
-                    python build.py --package
                 '''
             }
         }

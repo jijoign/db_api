@@ -2,12 +2,22 @@
 
 ## Installation & Setup
 
-### 1. Install Dependencies
+### 1. Create Virtual Environment (Recommended)
+```bash
+# Create virtual environment
+python3 -m venv venv
+
+# Activate it
+source venv/bin/activate        # Linux/macOS
+# venv\Scripts\activate        # Windows (if needed)
+```
+
+### 2. Install Dependencies
 ```bash
 pip install -r requirements.txt
 ```
 
-### 2. Configure Environment (Optional)
+### 3. Configure Environment (Optional)
 ```bash
 # Copy the example environment file
 cp .env.example .env
@@ -16,7 +26,7 @@ cp .env.example .env
 # Default is SQLite (no configuration needed)
 ```
 
-### 3. Initialize Database
+### 4. Initialize Database
 ```bash
 # Create database tables
 python db_manager.py create
@@ -25,7 +35,7 @@ python db_manager.py create
 python db_manager.py reset
 ```
 
-### 4. Start the Server
+### 5. Start the Server
 ```bash
 # Method 1: Using the run script
 python run.py
@@ -39,11 +49,11 @@ python -m app.main
 
 The server will start at **http://localhost:8000**
 
-### 5. Access API Documentation
+### 6. Access API Documentation
 - **Swagger UI**: http://localhost:8000/docs
 - **ReDoc**: http://localhost:8000/redoc
 
-### 6. Test the API
+### 7. Test the API
 ```bash
 # In a new terminal, run the example usage script
 python example_usage.py

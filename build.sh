@@ -15,32 +15,51 @@ if ! command -v python3 &> /dev/null; then
     exit 1
 fi
 
+# Detect and activate virtual environment
+PYTHON_CMD="python3"
+if [ -d "venv" ]; then
+    echo "Activating virtual environment..."
+    source venv/bin/activate
+    PYTHON_CMD="python"
+fi
+
 # Function to show help
 show_help() {
-    echo "Usage: ./build.sh [option]"
+    echo "Usage: ./build.sh [database] [--package]"
     echo
-    echo "Options:"
-    echo "  (none)      - Build default executable with all databases"
+    echo "Database Options:"
+    echo "  (none)      - Build all database versions"
     echo "  clean       - Clean build directories"
     echo "  sqlite      - Build SQLite-only version"
     echo "  postgresql  - Build PostgreSQL version"
     echo "  mysql       - Build MySQL version"
     echo "  all         - Build all database-specific versions"
-    echo "  package     - Build and create distribution package"
     echo "  help        - Show this help message"
     echo
+    echo "Flags:"
+    echo "  --package   - Create distribution package after build"
+    echo
     echo "Examples:"
-    echo "  ./build.sh              Build default"
-    echo "  ./build.sh sqlite       Build SQLite version"
-    echo "  ./build.sh package      Create distribution"
+    echo "  ./build.sh                    Build all databases"
+    echo "  ./build.sh sqlite             Build SQLite version"
+    echo "  ./build.sh sqlite --package   Build and package SQLite"
+    echo "  ./build.sh all --package      Build and package all"
     echo
 }
 
 # Parse arguments
-case "${1:-default}" in
-    default)
-        echo "Building default executable..."
-        python3 build.py
+DB_TYPE="${1:-all}"
+PACKAGE_FLAG=""
+
+# Check for --package flag in second argument
+if [ "$2" = "--package" ]; then
+    PACKAGE_FLAG="--package"
+fi
+
+case "$DB_TYPE" in
+    default|all)
+        echo "Building all database versions..."
+        $PYTHON_CMD build.py all $PACKAGE_FLAG
         ;;
     clean)
         echo "Cleaning build directories..."
@@ -49,23 +68,15 @@ case "${1:-default}" in
         ;;
     sqlite)
         echo "Building SQLite version..."
-        python3 build_databases.py sqlite
+        $PYTHON_CMD build.py sqlite $PACKAGE_FLAG
         ;;
     postgresql)
         echo "Building PostgreSQL version..."
-        python3 build_databases.py postgresql
+        $PYTHON_CMD build.py postgresql $PACKAGE_FLAG
         ;;
     mysql)
         echo "Building MySQL version..."
-        python3 build_databases.py mysql
-        ;;
-    all)
-        echo "Building all database versions..."
-        python3 build_databases.py all
-        ;;
-    package)
-        echo "Building distribution package..."
-        python3 build.py --package
+        $PYTHON_CMD build.py mysql $PACKAGE_FLAG
         ;;
     help)
         show_help
@@ -81,4 +92,8 @@ esac
 
 echo
 echo "Build completed successfully!"
-echo "Executables are in the 'dist' folder."
+if [ -n "$PACKAGE_FLAG" ]; then
+    echo "Distribution packages are in the 'dist' folder."
+else
+    echo "Executables are in the 'dist' folder."
+fi

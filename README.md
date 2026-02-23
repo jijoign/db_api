@@ -18,9 +18,11 @@ A comprehensive REST API library built with **FastAPI** and **SQLAlchemy**, prov
 
 **Quick commands:**
 ```bash
-pip install -r requirements.txt      # Install dependencies
-python db_manager.py create          # Create database tables
-python run.py                         # Start server
+python3 -m venv venv              # Create virtual environment
+source venv/bin/activate          # Activate it (Linux/macOS)
+pip install -r requirements.txt   # Install dependencies
+python db_manager.py create       # Create database tables
+python run.py                      # Start server
 ```
 
 Visit http://localhost:8000/docs for interactive API documentation.
@@ -55,13 +57,17 @@ Package the API as standalone executables for distribution to systems without Py
 pip install -r requirements-dev.txt
 
 # Build executable (all databases)
-python build.py
+python build.py all
 
 # Build database-specific versions
-python build_databases.py sqlite      # SQLite only (~40 MB)
-python build_databases.py postgresql  # PostgreSQL
-python build_databases.py mysql       # MySQL
-python build_databases.py all         # All versions
+python build.py sqlite      # SQLite only (~40 MB)
+python build.py postgresql  # PostgreSQL
+python build.py mysql       # MySQL
+python build.py all         # All versions
+
+# Create distribution packages
+python build.py sqlite --package  # SQLite package
+python build.py all --package     # All packages
 ```
 
 ### Using Build Scripts
@@ -69,9 +75,10 @@ python build_databases.py all         # All versions
 **Linux/Mac:**
 ```bash
 chmod +x build.sh
-./build.sh         # Default build
-./build.sh sqlite  # SQLite version
-./build.sh package # Create distribution
+./build.sh                   # Build all databases
+./build.sh sqlite            # SQLite version
+./build.sh sqlite --package  # SQLite with package
+./build.sh all --package     # All databases with packages
 ```
 
 **Output:** Executables in `dist/` folder

@@ -80,8 +80,7 @@ def verify_ci_setup():
     
     # Check build scripts
     print("\n🔨 Checking build scripts...")
-    all_checks.append(check_file_exists("build.py", "Main build script"))
-    all_checks.append(check_file_exists("build_databases.py", "Database build script"))
+    all_checks.append(check_file_exists("build.py", "Database build script"))
     
     # Summary
     print("\n" + "="*60)
@@ -100,7 +99,7 @@ def verify_ci_setup():
         print("\n✅ CI/CD setup is complete!")
         print("\nNext steps:")
         print("  1. Install dependencies: pip install -r requirements-dev.txt")
-        print("  2. Build executable: python build.py")
+        print("  2. Build executable: python build.py all")
         print("  3. Run tests: python ci/run_tests.py")
         return 0
     else:

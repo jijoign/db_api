@@ -2,6 +2,17 @@
 
 Quick commands for common CI/CD tasks. See [README.md](README.md) for detailed documentation.
 
+## Setup
+
+**Virtual environment (recommended):**
+```bash
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements-dev.txt
+```
+
+**Note:** Scripts automatically detect and use `venv/` if present.
+
 ## Running Tests
 
 ```bash
@@ -67,7 +78,7 @@ python ci/run_tests.py --skip-slow
 **Full validation:**
 ```bash
 python ci/run_tests.py
-python build.py
+python build.py all
 python ci/scripts/verify_build.py
 ```
 

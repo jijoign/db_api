@@ -23,8 +23,7 @@ Welcome! This document helps you navigate all the documentation for the REST API
 
 | Script | Purpose | Platform |
 |--------|---------|----------|
-| [build.py](build.py) | Main build script | All platforms |
-| [build_databases.py](build_databases.py) | Database-specific builds | All platforms |
+| [build.py](build.py) | Database-specific builds | All platforms |
 | [build.sh](build.sh) | Quick build wrapper | Linux/Mac |
 | [api_library.spec](api_library.spec) | PyInstaller spec file | All platforms |
 
@@ -103,8 +102,7 @@ repo/
 │   └── DOCUMENTATION_INDEX.md # This file
 │
 ├── 🔨 Build Scripts
-│   ├── build.py              # Main build script
-│   ├── build_databases.py    # Database-specific builds
+│   ├── build.py    # Database-specific builds
 │   ├── build.sh              # Linux/Mac build wrapper
 │   └── api_library.spec      # PyInstaller spec file
 │
@@ -159,6 +157,10 @@ repo/
 ### Development Commands
 
 ```bash
+# Create virtual environment
+python3 -m venv venv
+source venv/bin/activate
+
 # Install dependencies
 pip install -r requirements.txt
 
@@ -175,17 +177,21 @@ python example_usage.py
 ### Build Commands
 
 ```bash
-# Install build tools
+# Install build tools (in venv)
 pip install -r requirements-dev.txt
 
 # Build all databases
-python build.py
+python build.py all
 
 # Build SQLite only
-python build_databases.py sqlite
+python build.py sqlite
 
 # Build with package
-python build.py --package
+python build.py all --package
+
+# Build database-specific with package
+python build.py sqlite --package
+python build.py all --package
 ```
 
 ### Database Management
