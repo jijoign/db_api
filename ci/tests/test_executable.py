@@ -51,6 +51,22 @@ class ExecutableTests(unittest.TestCase):
     def _start_executable(cls, timeout=15):
         """Start the executable."""
         print(f"\nStarting executable: {cls.executable}")
+        print(f"  Executable path: {cls.executable.absolute()}")
+        print(f"  Working directory: {cls.dist_dir.absolute()}")
+        
+        # Verify executable exists
+        if not cls.executable.exists():
+            print(f"❌ Executable not found at {cls.executable}")
+            return False
+        
+        # Ensure executable has execute permissions on Unix
+        if sys.platform != 'win32':
+            try:
+                os.chmod(cls.executable, 0o755)
+                print(f"  ✓ Set execute permissions on {cls.executable.name}")
+            except Exception as e:
+                print(f"  ⚠️  Could not set permissions: {e}")
+                return False
         
         # Create test .env file
         env_content = f"""
@@ -61,15 +77,23 @@ DEBUG=True
 """
         test_env = cls.dist_dir / ".env"
         test_env.write_text(env_content)
+        print(f"  ✓ Created .env file")
         
         # Start executable (use just the name since cwd is dist_dir)
-        cls.process = subprocess.Popen(
-            [f"./{cls.executable.name}"],
-            cwd=cls.dist_dir,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True
-        )
+        try:
+            cls.process = subprocess.Popen(
+                [f"./{cls.executable.name}"],
+                cwd=cls.dist_dir,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True
+            )
+            print(f"  ✓ Process started (PID: {cls.process.pid})")
+        except Exception as e:
+            print(f"❌ Failed to start process: {e}")
+            import traceback
+            traceback.print_exc()
+            return False
         
         # Wait for server to start
         print(f"Waiting for server to start (timeout: {timeout}s)...")
@@ -80,9 +104,11 @@ DEBUG=True
             if cls.process.poll() is not None:
                 stdout, stderr = cls.process.communicate()
                 print(f"❌ Process crashed!")
-                print(f"Exit code: {cls.process.returncode}")
-                print(f"STDOUT: {stdout[:1000] if stdout else '(empty)'}")  # Truncate
-                print(f"STDERR: {stderr[:1000] if stderr else '(empty)'}")  # Truncate
+                print(f"  Exit code: {cls.process.returncode}")
+                print(f"  STDOUT ({len(stdout)} chars):")
+                print(f"    {stdout[:1000] if stdout else '(empty)'}")
+                print(f"  STDERR ({len(stderr)} chars):")
+                print(f"    {stderr[:1000] if stderr else '(empty)'}")
                 cls.process = None
                 return False
             
@@ -98,14 +124,18 @@ DEBUG=True
         print("❌ Server failed to start within timeout")
         if cls.process and cls.process.poll() is None:
             # Process still running, try to get output before killing
+            print("  Process is still running, terminating to get output...")
             cls.process.terminate()
             try:
                 stdout, stderr = cls.process.communicate(timeout=2)
-                print(f"STDOUT: {stdout[:500]}")  # Truncate long output
-                print(f"STDERR: {stderr[:500]}")
+                print(f"  STDOUT ({len(stdout)} chars): {stdout[:500] if stdout else '(empty)'}")
+                print(f"  STDERR ({len(stderr)} chars): {stderr[:500] if stderr else '(empty)'}")
             except subprocess.TimeoutExpired:
+                print("  Process didn't terminate, killing...")
                 cls.process.kill()
                 cls.process.wait()
+        elif cls.process:
+            print(f"  Process already exited with code: {cls.process.returncode}")
         cls._stop_executable()
         return False
     
@@ -159,7 +189,18 @@ DEBUG=True
     def test_04_start_executable(self):
         """Test that executable can start."""
         started = self._start_executable()
-        self.assertTrue(started, "Executable failed to start")
+        if not started:
+            # Print additional debug info
+            print(f"\n❌ Startup failed for: {self.__class__.executable}")
+            print(f"   Working directory: {self.__class__.dist_dir.absolute()}")
+            print(f"   File exists: {self.__class__.executable.exists()}")
+            if self.__class__.executable.exists():
+                print(f"   File size: {self.__class__.executable.stat().st_size} bytes")
+                if sys.platform != 'win32':
+                    import stat
+                    mode = self.__class__.executable.stat().st_mode
+                    print(f"   Permissions: {oct(stat.S_IMODE(mode))}")
+        self.assertTrue(started, "Executable failed to start - check debug output above")
     
     def test_05_health_endpoint(self):
         """Test health endpoint."""
