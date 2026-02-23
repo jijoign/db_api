@@ -1,7 +1,8 @@
 """Pydantic schemas for request/response validation."""
-from pydantic import BaseModel, EmailStr, Field, ConfigDict
-from typing import Optional
 from datetime import datetime
+from typing import Optional
+
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 
 # User Schemas
@@ -31,7 +32,7 @@ class UserResponse(UserBase):
     id: int
     created_at: datetime
     updated_at: Optional[datetime] = None
-    
+
     model_config = ConfigDict(from_attributes=True)
 
 
@@ -62,7 +63,7 @@ class ItemResponse(ItemBase):
     id: int
     created_at: datetime
     updated_at: Optional[datetime] = None
-    
+
     model_config = ConfigDict(from_attributes=True)
 
 

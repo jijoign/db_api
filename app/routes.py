@@ -1,7 +1,9 @@
 """API routes for the REST API."""
-from fastapi import APIRouter, Depends, HTTPException, status, Query
-from sqlalchemy.orm import Session
 from typing import List
+
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy.orm import Session
+
 from app import crud, schemas
 from app.database import get_db
 
@@ -72,7 +74,7 @@ def update_user(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="User not found"
         )
-    
+
     # Check if email is being updated and already exists
     if user.email and user.email != db_user.email:
         existing_user = crud.user.get_by_email(db, email=user.email)
@@ -81,7 +83,7 @@ def update_user(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Email already registered"
             )
-    
+
     # Check if username is being updated and already exists
     if user.username and user.username != db_user.username:
         existing_user = crud.user.get_by_username(db, username=user.username)
@@ -90,7 +92,7 @@ def update_user(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Username already taken"
             )
-    
+
     return crud.user.update(db=db, db_obj=db_user, obj_in=user)
 
 
