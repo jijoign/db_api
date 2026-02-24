@@ -43,7 +43,7 @@ pipeline {
                 stage('Linting') {
                     steps {
                         echo 'Running linting checks...'
-                        sh '''
+                        sh '''#!/bin/bash
                             set -o pipefail
                             . ${VENV_DIR}/bin/activate
                             mkdir -p build/logs
@@ -55,7 +55,7 @@ pipeline {
                 stage('Type Checking') {
                     steps {
                         echo 'Running type checks...'
-                        sh '''
+                        sh '''#!/bin/bash
                             set -o pipefail
                             . ${VENV_DIR}/bin/activate
                             mkdir -p build/logs
@@ -86,7 +86,7 @@ pipeline {
         stage('Verify Build') {
             steps {
                 echo 'Verifying build artifacts...'
-                sh '''
+                sh '''#!/bin/bash
                     set -o pipefail
                     . ${VENV_DIR}/bin/activate
                     mkdir -p build/logs
@@ -101,7 +101,7 @@ pipeline {
             }
             steps {
                 echo 'Testing executable...'
-                sh '''
+                sh '''#!/bin/bash
                     set -o pipefail
                     . ${VENV_DIR}/bin/activate
                     mkdir -p build/logs test-results
@@ -117,7 +117,7 @@ pipeline {
             }
             steps {
                 echo 'Running database integration tests...'
-                sh '''
+                sh '''#!/bin/bash
                     set -o pipefail
                     . ${VENV_DIR}/bin/activate
                     mkdir -p build/logs test-results
@@ -132,7 +132,7 @@ pipeline {
             }
             steps {
                 echo 'Running performance tests...'
-                sh '''
+                sh '''#!/bin/bash
                     set -o pipefail
                     . ${VENV_DIR}/bin/activate
                     mkdir -p build/logs test-results
@@ -145,7 +145,7 @@ pipeline {
         stage('Integration Tests') {
             steps {
                 echo 'Running integration tests...'
-                sh '''
+                sh '''#!/bin/bash
                     set -o pipefail
                     . ${VENV_DIR}/bin/activate
                     mkdir -p build/logs test-results
