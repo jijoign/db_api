@@ -16,11 +16,38 @@ class ExecutableTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         """Set up test environment."""
-        cls.dist_dir = Path("dist/rest-api-library-sqlite-1.0.0")
+        # Detect build type from environment or find package directory
+        build_type = os.environ.get('BUILD_TYPE', 'sqlite')
+        cls.dist_dir = cls._find_distribution_dir(build_type)
         cls.executable = cls._find_executable()
         cls.process = None
         cls.base_url = "http://localhost:8000"
         cls.test_port = 8000
+    
+    @classmethod
+    def _find_distribution_dir(cls, build_type):
+        """Find the distribution directory for the built package."""
+        dist_base = Path("dist")
+        
+        # Look for package directory matching build type
+        if build_type == 'all':
+            # Find any package directory
+            pkg_dirs = list(dist_base.glob("rest-api-library-*-1.0.0"))
+            if pkg_dirs:
+                return pkg_dirs[0]
+        else:
+            # Look for specific build type
+            expected_dir = dist_base / f"rest-api-library-{build_type}-1.0.0"
+            if expected_dir.exists():
+                return expected_dir
+        
+        # Fallback: find any package directory
+        pkg_dirs = list(dist_base.glob("rest-api-library-*-1.0.0"))
+        if pkg_dirs:
+            print(f"Warning: Could not find {build_type} package, using {pkg_dirs[0].name}")
+            return pkg_dirs[0]
+        
+        raise FileNotFoundError(f"No distribution package found in {dist_base}")
     
     @classmethod
     def _find_executable(cls):

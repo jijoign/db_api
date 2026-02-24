@@ -44,6 +44,7 @@ pipeline {
                     steps {
                         echo 'Running linting checks...'
                         sh '''
+                            set -o pipefail
                             . ${VENV_DIR}/bin/activate
                             mkdir -p build/logs
                             python ci/scripts/lint_check.py 2>&1 | tee build/logs/lint-check.log
@@ -55,6 +56,7 @@ pipeline {
                     steps {
                         echo 'Running type checks...'
                         sh '''
+                            set -o pipefail
                             . ${VENV_DIR}/bin/activate
                             mkdir -p build/logs
                             python ci/scripts/type_check.py 2>&1 | tee build/logs/type-check.log
@@ -85,6 +87,7 @@ pipeline {
             steps {
                 echo 'Verifying build artifacts...'
                 sh '''
+                    set -o pipefail
                     . ${VENV_DIR}/bin/activate
                     mkdir -p build/logs
                     python ci/scripts/verify_build.py 2>&1 | tee build/logs/verify-build.log
@@ -93,12 +96,17 @@ pipeline {
         }
                 
         stage('Test Executable') {
+            when {
+                expression { params.RUN_TESTS == true }
+            }
             steps {
                 echo 'Testing executable...'
                 sh '''
+                    set -o pipefail
                     . ${VENV_DIR}/bin/activate
-                    mkdir -p build/logs
-                    python ci/tests/test_executable.py 2>&1 | tee build/logs/test-executable.log
+                    mkdir -p build/logs test-results
+                    export BUILD_TYPE=${BUILD_TYPE}
+                    python ci/tests/run_tests.py test_executable --output-dir test-results 2>&1 | tee build/logs/test-executable.log
                 '''
             }
         }
@@ -110,9 +118,10 @@ pipeline {
             steps {
                 echo 'Running database integration tests...'
                 sh '''
+                    set -o pipefail
                     . ${VENV_DIR}/bin/activate
-                    mkdir -p build/logs
-                    python ci/tests/test_database_integration.py 2>&1 | tee build/logs/database-integration.log
+                    mkdir -p build/logs test-results
+                    python ci/tests/run_tests.py test_database_integration --output-dir test-results 2>&1 | tee build/logs/database-integration.log
                 '''
             }
         }
@@ -124,9 +133,11 @@ pipeline {
             steps {
                 echo 'Running performance tests...'
                 sh '''
+                    set -o pipefail
                     . ${VENV_DIR}/bin/activate
-                    mkdir -p build/logs
-                    python ci/tests/test_performance.py 2>&1 | tee build/logs/performance-tests.log
+                    mkdir -p build/logs test-results
+                    export BUILD_TYPE=${BUILD_TYPE}
+                    python ci/tests/run_tests.py test_performance --output-dir test-results 2>&1 | tee build/logs/performance-tests.log
                 '''
             }
         }
@@ -135,9 +146,10 @@ pipeline {
             steps {
                 echo 'Running integration tests...'
                 sh '''
+                    set -o pipefail
                     . ${VENV_DIR}/bin/activate
-                    mkdir -p build/logs
-                    python ci/tests/test_installer.py 2>&1 | tee build/logs/integration-tests.log
+                    mkdir -p build/logs test-results
+                    python ci/tests/run_tests.py test_installer --output-dir test-results 2>&1 | tee build/logs/integration-tests.log
                 '''
             }
         }
@@ -146,6 +158,9 @@ pipeline {
             steps {
                 echo 'Archiving build artifacts...'
                 script {
+                    // Publish JUnit test results
+                    junit testResults: 'test-results/*.xml', allowEmptyResults: true, skipPublishingChecks: false
+                    
                     // Archive executables and packages
                     archiveArtifacts artifacts: 'dist/**/*', fingerprint: true, allowEmptyArchive: true
                     
@@ -171,6 +186,10 @@ pipeline {
     
     post {
         always {
+            echo 'Publishing test results...'
+            // Publish test results even if build fails
+            junit testResults: 'test-results/*.xml', allowEmptyResults: true, skipPublishingChecks: false
+            
             echo 'Cleaning up...'
             cleanWs()
         }
