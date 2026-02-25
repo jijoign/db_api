@@ -2,32 +2,85 @@ pipeline {
     agent any
     
     parameters {
-        string(name: 'BRANCH_NAME', defaultValue: 'main', description: 'Branch to build from')
-        choice(name: 'BUILD_TYPE', choices: ['mysql', 'sqlite', 'postgresql', 'all'], description: 'Type of build to create')
-        booleanParam(name: 'RUN_TESTS', defaultValue: true, description: 'Run test suite')
-        booleanParam(name: 'CREATE_PACKAGE', defaultValue: false, description: 'Create distribution package')
+        choice(
+            name: 'BUILD_TYPE',
+            choices: ['sqlite', 'mysql', 'postgresql', 'all'],
+            description: 'Type of build to create. Change default value for different pipelines.'
+        )
+        string(
+            name: 'BRANCH_NAME',
+            defaultValue: 'main',
+            description: 'Branch to build (used for manual triggers)'
+        )
+    }
+            
+    options {
+        skipDefaultCheckout(true)
+        gitLabConnection('IGN_GITLAB')
+        gitlabBuilds(builds: ['Checkout', 'Setup', 'Code Quality', 'Build', 'Verify', 'Tests', 'Final'])
     }
     
     environment {
         PYTHON_VERSION = '3.11'
         PROJECT_NAME = 'rest-api-library'
         VENV_DIR = 'venv'
+        WEBHOOK_URL = 'http://192.168.40.249:8888/api/job-complete'
     }
     
     stages {
         stage('Checkout') {
             steps {
-                echo "Checking out source code from branch: ${params.BRANCH_NAME}..."
-                checkout([
-                    $class: 'GitSCM',
-                    branches: [[name: "*/${params.BRANCH_NAME}"]],
-                    userRemoteConfigs: scm.userRemoteConfigs
-                ])
+                script {
+                    updateGitlabCommitStatus name: 'Checkout', state: 'running'
+                    
+                    echo "═══════════════════════════════════════════════════"
+                    echo "Build Information"
+                    echo "═══════════════════════════════════════════════════"
+                    
+                    // Determine branch to checkout:
+                    // 1. GitLab webhook branch (for webhook triggers)
+                    // 2. Manual parameter (for manual triggers)
+                    // 3. Default to 'main'
+                    def branch = env.gitlabBranch ?: env.gitlabSourceBranch ?: params.BRANCH_NAME ?: 'main'
+                    
+                    // Determine trigger type for logging
+                    def triggerType = env.gitlabBranch ? 'GitLab Webhook' : 'Manual Build'
+                    def triggerDetails = ''
+                    
+                    if (env.gitlabBranch) {
+                        triggerDetails = """
+                        Trigger Type: GitLab Webhook
+                        Source Branch: ${env.gitlabSourceBranch ?: 'N/A'}
+                        Target Branch: ${env.gitlabTargetBranch ?: 'N/A'}
+                        Action Type: ${env.gitlabActionType ?: 'Push'}
+                        User: ${env.gitlabUserName ?: 'N/A'}
+                        Commit: ${env.gitlabAfter ?: 'N/A'}
+                        """
+                    } else {
+                        triggerDetails = """
+                        Trigger Type: Manual Build
+                        Requested Branch: ${params.BRANCH_NAME}
+                        Build Type: ${params.BUILD_TYPE}
+                        """
+                    }
+                    
+                    echo triggerDetails.stripIndent()
+                    echo "Checking out branch: ${branch}"
+                    echo "═══════════════════════════════════════════════════"
+                    
+                    checkout([
+                        $class: 'GitSCM',
+                        branches: [[name: "*/${branch}"]],
+                        userRemoteConfigs: scm.userRemoteConfigs
+                    ])
+                    updateGitlabCommitStatus name: 'Checkout', state: 'success'
+                }
             }
         }
         
         stage('Setup Python Environment') {
             steps {
+                updateGitlabCommitStatus name: 'Setup', state: 'running'
                 echo "Setting up Python ${PYTHON_VERSION} environment..."
                 sh '''
                     python3 -m venv ${VENV_DIR}
@@ -35,6 +88,7 @@ pipeline {
                     pip install --upgrade pip
                     pip install -r requirements.txt
                 '''
+                updateGitlabCommitStatus name: 'Setup', state: 'success'
             }
         }
         
@@ -42,6 +96,9 @@ pipeline {
             parallel {
                 stage('Linting') {
                     steps {
+                        script {
+                            updateGitlabCommitStatus name: 'Code Quality', state: 'running'
+                        }
                         echo 'Running linting checks...'
                         sh '''#!/bin/bash
                             set -o pipefail
@@ -64,27 +121,36 @@ pipeline {
                     }
                 }
             }
+            post {
+                success {
+                    updateGitlabCommitStatus name: 'Code Quality', state: 'success'
+                }
+                failure {
+                    updateGitlabCommitStatus name: 'Code Quality', state: 'failed'
+                }
+            }
         }
         
         stage('Build Executable') {
             steps {
                 script {
-                    def packageFlag = params.CREATE_PACKAGE ? '--package' : ''
+                    updateGitlabCommitStatus name: 'Build', state: 'running'
                     echo "Building executable: ${params.BUILD_TYPE}..."
-                    if (params.CREATE_PACKAGE) {
-                        echo "Creating distribution package..."
-                    }
+                    echo "Creating distribution package..."
+                    
                     sh """
                         . ${VENV_DIR}/bin/activate
                         mkdir -p build/logs
-                        python ci/scripts/build_executable.py --type ${params.BUILD_TYPE} ${packageFlag} 2>&1 | tee build/logs/build-executable.log
+                        python ci/scripts/build_executable.py --type ${params.BUILD_TYPE} --package 2>&1 | tee build/logs/build-executable.log
                     """
+                    updateGitlabCommitStatus name: 'Build', state: 'success'
                 }
             }
         }
 
         stage('Verify Build') {
             steps {
+                updateGitlabCommitStatus name: 'Verify', state: 'running'
                 echo 'Verifying build artifacts...'
                 sh '''#!/bin/bash
                     set -o pipefail
@@ -92,65 +158,75 @@ pipeline {
                     mkdir -p build/logs
                     python ci/scripts/verify_build.py 2>&1 | tee build/logs/verify-build.log
                 '''
+                updateGitlabCommitStatus name: 'Verify', state: 'success'
             }
         }
                 
-        stage('Test Executable') {
-            when {
-                expression { params.RUN_TESTS == true }
+        stage('All Tests') {
+            stages {
+                stage('Test Executable') {
+                    steps {
+                        script {
+                            updateGitlabCommitStatus name: 'Tests', state: 'running'
+                        }
+                        echo 'Testing executable...'
+                        sh '''#!/bin/bash
+                            set -o pipefail
+                            . ${VENV_DIR}/bin/activate
+                            mkdir -p build/logs test-results
+                            export BUILD_TYPE="''' + params.BUILD_TYPE + '''"
+                            python ci/tests/run_tests.py test_executable --output-dir test-results 2>&1 | tee build/logs/test-executable.log
+                        '''
+                    }
+                }
+                
+                stage('Database Integration Tests') {
+                    steps {
+                        echo 'Running database integration tests...'
+                        sh '''#!/bin/bash
+                            set -o pipefail
+                            . ${VENV_DIR}/bin/activate
+                            mkdir -p build/logs test-results
+                            python ci/tests/run_tests.py test_database_integration --output-dir test-results 2>&1 | tee build/logs/database-integration.log
+                        '''
+                    }
+                }
+                
+                stage('Performance Tests') {
+                    steps {
+                        echo 'Running performance tests...'
+                        sh '''#!/bin/bash
+                            set -o pipefail
+                            . ${VENV_DIR}/bin/activate
+                            mkdir -p build/logs test-results
+                            export BUILD_TYPE="''' + params.BUILD_TYPE + '''"
+                            python ci/tests/run_tests.py test_performance --output-dir test-results 2>&1 | tee build/logs/performance-tests.log
+                        '''
+                    }
+                }
+                
+                stage('Integration Tests') {
+                    steps {
+                        echo 'Running integration tests...'
+                        sh '''#!/bin/bash
+                            set -o pipefail
+                            . ${VENV_DIR}/bin/activate
+                            mkdir -p build/logs test-results
+                            python ci/tests/run_tests.py test_installer --output-dir test-results 2>&1 | tee build/logs/integration-tests.log
+                        '''
+                    }
+                }
             }
-            steps {
-                echo 'Testing executable...'
-                sh '''#!/bin/bash
-                    set -o pipefail
-                    . ${VENV_DIR}/bin/activate
-                    mkdir -p build/logs test-results
-                    export BUILD_TYPE=${BUILD_TYPE}
-                    python ci/tests/run_tests.py test_executable --output-dir test-results 2>&1 | tee build/logs/test-executable.log
-                '''
-            }
-        }
-        
-        stage('Database Integration Tests') {
-            when {
-                expression { params.RUN_TESTS == true }
-            }
-            steps {
-                echo 'Running database integration tests...'
-                sh '''#!/bin/bash
-                    set -o pipefail
-                    . ${VENV_DIR}/bin/activate
-                    mkdir -p build/logs test-results
-                    python ci/tests/run_tests.py test_database_integration --output-dir test-results 2>&1 | tee build/logs/database-integration.log
-                '''
-            }
-        }
-        
-        stage('Performance Tests') {
-            when {
-                expression { params.RUN_TESTS == true }
-            }
-            steps {
-                echo 'Running performance tests...'
-                sh '''#!/bin/bash
-                    set -o pipefail
-                    . ${VENV_DIR}/bin/activate
-                    mkdir -p build/logs test-results
-                    export BUILD_TYPE=${BUILD_TYPE}
-                    python ci/tests/run_tests.py test_performance --output-dir test-results 2>&1 | tee build/logs/performance-tests.log
-                '''
-            }
-        }
-        
-        stage('Integration Tests') {
-            steps {
-                echo 'Running integration tests...'
-                sh '''#!/bin/bash
-                    set -o pipefail
-                    . ${VENV_DIR}/bin/activate
-                    mkdir -p build/logs test-results
-                    python ci/tests/run_tests.py test_installer --output-dir test-results 2>&1 | tee build/logs/integration-tests.log
-                '''
+            post {
+                success {
+                    updateGitlabCommitStatus name: 'Tests', state: 'success'
+                }
+                failure {
+                    updateGitlabCommitStatus name: 'Tests', state: 'failed'
+                }
+                aborted {
+                    updateGitlabCommitStatus name: 'Tests', state: 'canceled'
+                }
             }
         }
         
@@ -194,7 +270,13 @@ pipeline {
             cleanWs()
         }
         success {
-            echo 'Build completed successfully!'
+            script {
+                echo 'Build completed successfully!'
+                updateGitlabCommitStatus name: 'Final', state: 'success'
+                
+                // Send job complete notification webhook
+                sendJobCompleteNotification('SUCCESS')
+            }
             emailext(
                 subject: "Build Success: ${env.JOB_NAME} - ${env.BUILD_NUMBER}",
                 body: "Build ${env.BUILD_NUMBER} completed successfully.\n\nBuild URL: ${env.BUILD_URL}",
@@ -202,7 +284,14 @@ pipeline {
             )
         }
         failure {
-            echo 'Build failed!'
+            script {
+                echo 'Build failed!'
+                updateGitlabCommitStatus name: 'Final', state: 'failed'
+                
+                // Send job complete notification webhook
+                sendJobCompleteNotification('FAILURE')
+            }
+            
             emailext(
                 subject: "Build Failed: ${env.JOB_NAME} - ${env.BUILD_NUMBER}",
                 body: "Build ${env.BUILD_NUMBER} failed.\n\nBuild URL: ${env.BUILD_URL}",
@@ -210,4 +299,157 @@ pipeline {
             )
         }
     }
+}
+
+// ============================================================================
+// Helper Functions
+// ============================================================================
+
+/**
+ * Collect GitLab webhook event data
+ * Reconstructs the GitLab webhook payload structure from Jenkins environment variables
+ * @return Map containing GitLab webhook event data
+ */
+def collectGitLabEvent() {
+    def gitlabEvent = [:]
+    
+    // Basic event information
+    gitlabEvent.object_kind = env.gitlabActionType ?: 'push'
+    gitlabEvent.event_name = env.gitlabActionType ?: 'push'
+    gitlabEvent.before = env.gitlabBefore ?: null
+    gitlabEvent.after = env.gitlabAfter ?: null
+    gitlabEvent.ref = env.gitlabBranch ? "refs/heads/${env.gitlabBranch}" : null
+    gitlabEvent.checkout_sha = env.gitlabAfter ?: env.GIT_COMMIT ?: null
+    
+    // User information
+    gitlabEvent.user_id = env.gitlabUserId ?: null
+    gitlabEvent.user_name = env.gitlabUserName ?: null
+    gitlabEvent.user_username = env.gitlabUserUsername ?: null
+    gitlabEvent.user_email = env.gitlabUserEmail ?: null
+    
+    // Project information
+    if (env.gitlabSourceRepoName || env.gitlabSourceRepoHttpUrl) {
+        // Add port 8080 to git URLs if not already present
+        def httpUrl = env.gitlabSourceRepoHttpUrl
+        def webUrl = env.gitlabSourceRepoHomepage
+        
+        if (httpUrl && !httpUrl.contains(':8080')) {
+            httpUrl = httpUrl.replace('://', '://').replace('http://', 'http://').replace('https://', 'https://')
+            httpUrl = httpUrl.replaceFirst('(https?://[^/]+)', '$1:8080')
+        }
+        
+        if (webUrl && !webUrl.contains(':8080')) {
+            webUrl = webUrl.replaceFirst('(https?://[^/]+)', '$1:8080')
+        }
+        
+        gitlabEvent.project = [
+            name: env.gitlabSourceRepoName ?: null,
+            web_url: webUrl ?: null,
+            git_http_url: httpUrl ?: null,
+            git_ssh_url: env.gitlabSourceRepoSshUrl ?: null,
+            namespace: env.gitlabSourceNamespace ?: null,
+            path_with_namespace: env.gitlabSourceRepoName ?: null
+        ]
+        // Remove null values from project
+        gitlabEvent.project = gitlabEvent.project.findAll { it.value != null }
+    }
+    
+    // Merge Request specific information (if applicable)
+    if (env.gitlabMergeRequestId) {
+        gitlabEvent.merge_request = [
+            id: env.gitlabMergeRequestId ?: null,
+            iid: env.gitlabMergeRequestIid ?: null,
+            title: env.gitlabMergeRequestTitle ?: null,
+            description: env.gitlabMergeRequestDescription ?: null,
+            state: env.gitlabMergeRequestState ?: null,
+            source_branch: env.gitlabSourceBranch ?: null,
+            target_branch: env.gitlabTargetBranch ?: null,
+            last_commit: env.gitlabMergeRequestLastCommit ?: null,
+            assignee: env.gitlabMergeRequestAssignee ?: null,
+            merged_by: env.gitlabMergedByUser ?: null
+        ]
+        // Remove null values from merge_request
+        gitlabEvent.merge_request = gitlabEvent.merge_request.findAll { it.value != null }
+    }
+    
+    // Additional context
+    gitlabEvent.jenkins_trigger_phrase = env.gitlabTriggerPhrase ?: null
+    
+    // Remove all null values from top level
+    gitlabEvent = gitlabEvent.findAll { it.value != null }
+    
+    return gitlabEvent
+}
+
+/**
+ * Create JSON payload for webhook notification
+ * @param buildStatus Build status (SUCCESS or FAILURE)
+ * @return String containing JSON payload
+ */
+def createWebhookPayload(String buildStatus) {
+    def gitlabEvent = collectGitLabEvent()
+    
+    def payload = """
+    {
+        "job_name": "${env.JOB_NAME}",
+        "build_number": "${env.BUILD_NUMBER}",
+        "build_status": "${buildStatus}",
+        "build_url": "${env.BUILD_URL}",
+        "console_url": "${env.BUILD_URL}consoleText",
+        "artifacts_url": "${env.BUILD_URL}artifact/*zip*/archive.zip",
+        "gitlab_event": ${groovy.json.JsonOutput.toJson(gitlabEvent)}
+    }
+    """
+    
+    return payload
+}
+
+/**
+ * Send webhook notification via HTTP POST
+ * @param payload JSON payload to send
+ * @param webhookUrl Webhook endpoint URL
+ * @return boolean indicating success or failure
+ */
+def sendWebhook(String payload, String webhookUrl) {
+    // Write payload to file
+    writeFile file: 'failure-payload.json', text: payload
+    
+    // Call webhook API
+    echo "Calling failure notification webhook..."
+    echo "Webhook URL: ${webhookUrl}"
+    
+    def curlResult = sh(
+        returnStatus: true,
+        script: """
+            curl -X POST "${webhookUrl}" \
+                -H "Content-Type: application/json" \
+                -d @failure-payload.json \
+                --max-time 10 \
+                --silent \
+                --show-error || echo "Webhook call failed"
+        """
+    )
+    
+    if (curlResult == 0) {
+        echo "✓ Webhook notification sent successfully"
+        return true
+    } else {
+        echo "✗ Warning: Webhook notification failed (exit code: ${curlResult})"
+        return false
+    }
+}
+
+/**
+ * Main function to send job complete notification
+ * Orchestrates webhook payload creation and sending
+ * @param buildStatus Build status (SUCCESS or FAILURE)
+ */
+def sendJobCompleteNotification(String buildStatus) {
+    echo "Sending job complete notification webhook (status: ${buildStatus})..."
+    
+    // Create webhook payload
+    def payload = createWebhookPayload(buildStatus)
+    
+    // Send webhook
+    sendWebhook(payload, env.WEBHOOK_URL)
 }

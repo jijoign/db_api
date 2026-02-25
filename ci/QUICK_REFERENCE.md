@@ -31,17 +31,20 @@ python ci/run_tests.py --skip-slow
 ## Jenkins Build
 
 ```bash
-# Trigger build with parameters
+# Trigger build with BUILD_TYPE parameter
 curl -X POST "http://jenkins/job/rest-api-library/buildWithParameters" \
   --user username:token \
-  --data "BRANCH_NAME=main&BUILD_TYPE=sqlite&RUN_TESTS=true"
+  --data "BUILD_TYPE=sqlite"
 ```
 
-**Parameters:**
-- BRANCH_NAME: main (or any branch)
-- BUILD_TYPE: all, sqlite, postgresql, mysql
-- RUN_TESTS: true/false
-- CREATE_PACKAGE: true/false
+**Parameter:**
+- BUILD_TYPE: sqlite (default), mysql, postgresql, all
+
+**Automatic Behaviors:**
+- Branch: Auto-detected from GitLab webhook
+- Tests: Always run
+- Package: Always created
+- GitLab Status: Automatically reported
 
 ## Build Executable
 

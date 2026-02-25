@@ -2,6 +2,50 @@
 
 This directory contains all CI/CD scripts, tests, and Jenkins pipeline configuration for the REST API Library project.
 
+## GitLab Webhook Integration
+
+The Jenkins pipeline supports automatic triggering from GitLab webhooks with build status reporting:
+
+### Setup Requirements
+
+1. **GitLab Connection in Jenkins:**
+   - Navigate to: Manage Jenkins → Configure System → GitLab
+   - Add connection named `gitlab`
+   - Configure GitLab host URL and API token
+   - Test connection
+
+2. **Webhook Secret Token:**
+   - Set `GITLAB_WEBHOOK_SECRET` environment variable in Jenkins
+   - Configure matching secret in GitLab webhook settings
+
+3. **Webhook URL:**
+   ```
+   http://jenkins-server/project/job-name
+   ```
+
+### GitLab Status Reporting
+
+The pipeline automatically reports build status back to GitLab:
+- ✅ Commit status badges in GitLab
+- ✅ Merge request build status
+- ✅ Stage-level status reporting (Checkout, Setup, Code Quality, Build, Verify, Tests)
+- ✅ Success/failure notifications
+
+### Build Type Configuration
+
+**Parameter:** Build type is controlled via Jenkins parameter (defaults to 'sqlite'):
+```groovy
+parameters {
+    choice(
+        name: 'BUILD_TYPE',
+        choices: ['sqlite', 'mysql', 'postgresql', 'all'],
+        description: 'Type of build to create'
+    )
+}
+```
+
+To create pipeline variants with different defaults, change the order of choices in the Jenkinsfile.
+
 ## Setup
 
 ### Virtual Environment (Recommended)
@@ -57,10 +101,9 @@ ci/
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| BRANCH_NAME | String | main | Branch to build from |
-| BUILD_TYPE | Choice | all | Database type (all/sqlite/postgresql/mysql) |
-| RUN_TESTS | Boolean | true | Run test suite |
-| CREATE_PACKAGE | Boolean | false | Create distribution package |
+| BUILD_TYPE | Choice | sqlite | Database type to build (sqlite/mysql/postgresql/all) |
+
+**Note:** Branch is auto-detected from GitLab webhook. Tests always run and packages are always created.
 
 ### Setting Up Jenkins
 
@@ -84,10 +127,15 @@ ci/
 ### Manual Jenkins Build
 
 ```bash
-# Trigger build with parameters
+# Trigger build with BUILD_TYPE parameter
 curl -X POST "http://jenkins-server/job/rest-api-library/buildWithParameters" \
   --user username:token \
-  --data "BRANCH_NAME=main&BUILD_TYPE=sqlite&RUN_TESTS=true&CREATE_PACKAGE=false"
+  --data "BUILD_TYPE=sqlite"
+
+# Build all database types
+curl -X POST "http://jenkins-server/job/rest-api-library/buildWithParameters" \
+  --user username:token \
+  --data "BUILD_TYPE=all"
 ```
 
 ## Test Suites

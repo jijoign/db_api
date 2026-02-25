@@ -9,15 +9,14 @@ def main():
     parser = argparse.ArgumentParser(description='Build executable for CI/CD')
     parser.add_argument('--type', choices=['all', 'sqlite', 'postgresql', 'mysql'], 
                        default='all', help='Build type')
-    parser.add_argument('--package', action='store_true',
-                       help='Create distribution package after build')
+    parser.add_argument('--package', action='store_true', default=True,
+                       help='Create distribution package after build (default: True)')
     
     args = parser.parse_args()
     
     print(f"\n{'='*60}")
     print(f"CI/CD Build - {args.type.upper()}")
-    if args.package:
-        print("Package: Yes")
+    print(f"Package: {'Yes' if args.package else 'No'}")
     print(f"{'='*60}\n")
     
     # Build command
